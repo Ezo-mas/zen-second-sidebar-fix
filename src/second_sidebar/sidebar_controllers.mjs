@@ -9,6 +9,7 @@ import { SidebarMover } from "./controllers/sidebar_mover.mjs";
 import { SidebarResizer } from "./controllers/sidebar_resizer.mjs";
 import { SidebarSplitterController } from "./controllers/sidebar_splitter.mjs";
 import { SidebarToolbarCollapser } from "./controllers/sidebar_toolbar_collapser.mjs";
+import { SidebarElements } from "./sidebar_elements.mjs";
 import { WebPanelDeleteController } from "./controllers/web_panel_delete.mjs";
 import { WebPanelEditController } from "./controllers/web_panel_edit.mjs";
 import { WebPanelMoreController } from "./controllers/web_panel_more.mjs";
@@ -34,6 +35,8 @@ export class SidebarControllers {
     this.webPanelEditController = new WebPanelEditController();
     this.webPanelMoreController = new WebPanelMoreController();
     this.webPanelDeleteController = new WebPanelDeleteController();
-    this.contextMenuItemsController = new ContextMenuItemsController();
+    if (SidebarElements.contextMenuItemsEnabled) {
+      this.contextMenuItemsController = new ContextMenuItemsController();
+    }
   }
 }

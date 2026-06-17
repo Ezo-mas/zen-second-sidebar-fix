@@ -1,19 +1,23 @@
 export const SIDEBAR_BOX_CSS = `
-  #browser:has(#sb2-box[hidden="true"]) {
+  #browser:has(#sb2-box[hidden="true"]),
+  #zen-tabbox-wrapper:has(#sb2-box[hidden="true"]) {
     #sb2-box-area {
       display: contents;
     }
   }
 
-  #browser:has(#sb2-box[pinned="true"]) {
+  #browser:has(#sb2-box[pinned="true"]),
+  #zen-tabbox-wrapper:has(#sb2-box[pinned="true"]) {
     #sb2-box-area {
       display: contents;
     }
   }
 
-  #browser:has(#sb2-box[pinned="false"]) {
+  #browser:has(#sb2-box[pinned="false"]),
+  #zen-tabbox-wrapper:has(#sb2-box[pinned="false"]) {
     #sb2-box-area {
       position: absolute;
+      pointer-events: none;
     }
   }
 
@@ -50,6 +54,7 @@ export const SIDEBAR_BOX_CSS = `
     &[pinned="false"] {
       position: absolute;
       z-index: 20;
+      pointer-events: auto;
     }
 
     #sb2-toolbar {
@@ -86,6 +91,34 @@ export const SIDEBAR_BOX_CSS = `
           cursor: inherit;
         }
       }
+    }
+  }
+
+  #zen-tabbox-wrapper {
+    #sb2-box {
+      background: var(--sb2-zen-surface);
+      color: var(--toolbox-textcolor, var(--sidebar-text-color));
+      border: var(--sb2-zen-border);
+      border-radius: var(--sb2-zen-radius);
+      box-shadow: var(--sb2-zen-shadow);
+    }
+
+    #sb2-box[pinned="false"] {
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    #sb2-toolbar {
+      background: var(--sb2-zen-toolbar-surface);
+      min-height: var(--zen-toolbar-height, 38px);
+      padding: 3px 6px;
+    }
+
+    #sb2-geometry-hint {
+      background: var(--sb2-zen-surface);
+      border: var(--sb2-zen-border);
+      border-radius: var(--sb2-zen-radius);
+      box-shadow: var(--sb2-zen-shadow);
     }
   }
 

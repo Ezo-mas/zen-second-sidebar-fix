@@ -183,20 +183,31 @@ export class SidebarController {
 
     const webPanelController =
       SidebarControllers.webPanelsController.getActive();
+    SidebarElements.sidebarBoxArea.updatePosition();
     const floatingGeometry = webPanelController.getFloatingGeometry();
     SidebarControllers.sidebarGeometry.setFloatingGeometry(floatingGeometry);
 
     SidebarElements.sidebarBox.show();
+    requestAnimationFrame(() => {
+      if (!webPanelController.pinned()) {
+        SidebarControllers.sidebarGeometry.calculateAndSetFloatingGeometry(
+          webPanelController,
+        );
+        SidebarControllers.webPanelsController.saveSettings();
+      }
+    });
     this.updateToolbar(webPanelController);
     this.updatePinState(webPanelController);
   }
 
   close() {
     SidebarControllers.sidebarToolbarCollapser.clearTimers();
+    const webPanelController =
+      SidebarControllers.webPanelsController.getActive();
+    webPanelController?.close();
     SidebarElements.sidebarBox.hide();
     SidebarElements.sidebarSplitter.hide();
     SidebarElements.afterSplitter.hide();
-    SidebarControllers.webPanelsController.close();
   }
 
   /**

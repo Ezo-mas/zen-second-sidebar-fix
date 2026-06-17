@@ -22,6 +22,7 @@ import { WebPanelPopupMore } from "./xul/web_panel_popup_more.mjs";
 import { WebPanelPopupNew } from "./xul/web_panel_popup_new.mjs";
 import { WebPanelTooltip } from "./xul/web_panel_tooltip.mjs";
 import { WebPanelsBrowser } from "./xul/web_panels_browser.mjs";
+import { requireBrowserContainerElement } from "./utils/browser_layout.mjs";
 import { XULElement } from "./xul/base/xul_element.mjs";
 
 export class SidebarElements {
@@ -62,7 +63,7 @@ export class SidebarElements {
     this.geometryHint = new GeometryHint();
 
     const browser = new XULElement({
-      element: document.getElementById("browser"),
+      element: requireBrowserContainerElement(),
     });
     browser.appendChildren(
       this.sidebarWrapper.appendChildren(
@@ -126,18 +127,36 @@ export class SidebarElements {
   }
 
   static #createContextMenuItems() {
+    this.contextMenuItemsEnabled = false;
     this.openLinkAsWebPanelMenuItem = new OpenLinkAsWebPanelMenuItem();
     this.openLinkAsTempWebPanelMenuItem = new OpenLinkAsTempWebPanelMenuItem();
     this.searchInWebPanelMenuItem = new SearchInWebPanelMenuItem();
 
+    const contentAreaContextMenuElement = document.getElementById(
+      "contentAreaContextMenu",
+    );
+    const separatorElement = document.getElementById("context-sep-open");
+    const contextSearchSelectElement = document.getElementById(
+      "context-searchselect",
+    );
+
+    if (
+      !contentAreaContextMenuElement ||
+      !separatorElement ||
+      !contextSearchSelectElement
+    ) {
+      console.log("Context menu items skipped because menu anchors are missing");
+      return;
+    }
+
     const contentAreaContextMenu = new XULElement({
-      element: document.getElementById("contentAreaContextMenu"),
+      element: contentAreaContextMenuElement,
     });
     const separator = new XULElement({
-      element: document.getElementById("context-sep-open"),
+      element: separatorElement,
     });
     const contextSearchSelect = new XULElement({
-      element: document.getElementById("context-searchselect"),
+      element: contextSearchSelectElement,
     });
 
     contentAreaContextMenu.insertBefore(
@@ -152,5 +171,6 @@ export class SidebarElements {
       this.searchInWebPanelMenuItem,
       contextSearchSelect,
     );
+    this.contextMenuItemsEnabled = true;
   }
 }

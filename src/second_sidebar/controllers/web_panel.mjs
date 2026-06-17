@@ -320,8 +320,11 @@ export class WebPanelController {
     const activeTab = SidebarElements.webPanelsBrowser.getActiveWebPanelTab();
 
     if (activeTab.uuid === this.getUUID() && !forceOpen) {
-      // Select empty web panel tab
-      SidebarElements.webPanelsBrowser.deselectWebPanelTab();
+      if (SidebarControllers.sidebarController.closed()) {
+        this.open();
+      } else {
+        SidebarControllers.sidebarController.close();
+      }
     } else {
       // Create web panel tab if it was not loaded yet
       if (this.isUnloaded()) {
@@ -329,6 +332,7 @@ export class WebPanelController {
       }
       // Select web panel tab
       SidebarElements.webPanelsBrowser.selectWebPanelTab(this.#tab);
+      this.open();
     }
   }
 

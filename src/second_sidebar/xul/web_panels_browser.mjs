@@ -7,6 +7,7 @@ import { ScriptSecurityManagerWrapper } from "../wrappers/script_security_manage
 import { SessionStoreWrapper } from "../wrappers/session_store.mjs";
 import { Style } from "./base/style.mjs";
 import { UrlbarInputPatcher } from "../patchers/urlbar_input_patcher.mjs";
+import { BROWSER_CONTAINER_SELECTORS } from "../utils/browser_layout.mjs";
 import { WebPanelSettings } from "../settings/web_panel_settings.mjs"; // eslint-disable-line no-unused-vars
 import { WebPanelState } from "../settings/web_panel_state.mjs"; // eslint-disable-line no-unused-vars
 import { WebPanelTab } from "./web_panel_tab.mjs";
@@ -16,6 +17,7 @@ import { XULElement } from "./base/xul_element.mjs";
 
 const BEFORE_SHOW_EVENT = "browser-window-before-show";
 const INITIALIZED_EVENT = "browser-delayed-startup-finished";
+const DOM_WINDOW_CREATED_EVENT = "DOMWindowCreated";
 const DOM_WINDOW_CLOSED_EVENT = "domwindowclosed";
 const DIALOG_OPEN_EVENT = "dialogopen";
 
@@ -51,6 +53,10 @@ export class WebPanelsBrowser extends Browser {
     console.log("Initializing web panels browser...");
     ObserversWrapper.addObserver(this, BEFORE_SHOW_EVENT);
     ObserversWrapper.addObserver(this, INITIALIZED_EVENT);
+    this.addEventListener(DOM_WINDOW_CREATED_EVENT, (event) => {
+      this.#markZenUnsyncedWindow(event.target?.defaultView ?? event.target);
+    });
+    this.#markZenUnsyncedWindow(this.element.contentWindow);
     this.setAttribute("src", AppConstantsWrapper.BROWSER_CHROME_URL);
   }
 
@@ -65,9 +71,11 @@ export class WebPanelsBrowser extends Browser {
     }
     console.log(`${this.window.name}: got event ${topic}`);
     if (topic === BEFORE_SHOW_EVENT) {
+      this.#markZenUnsyncedWindow(subj);
       ObserversWrapper.removeObserver(this, BEFORE_SHOW_EVENT);
       this.initWindow();
     } else if (topic === INITIALIZED_EVENT) {
+      this.#markZenUnsyncedWindow(subj);
       ObserversWrapper.removeObserver(this, INITIALIZED_EVENT);
       this.#hackSessionStore();
       this.#hackCloseWindowCommand();
@@ -100,7 +108,22 @@ export class WebPanelsBrowser extends Browser {
     }
   }
 
+  // Mark the embedded browser chrome window as unsynced in zen
+  #markZenUnsyncedWindow(win) {
+    try {
+      if (!win) return;
+      win._zenStartupSyncFlag = "unsynced";
+      win.document?.documentElement?.setAttribute(
+        "zen-unsynced-window",
+        "true",
+      );
+    } catch (error) {
+      console.log("Failed to mark web panels window as Zen unsynced:", error);
+    }
+  }
+
   initWindow() {
+    this.#markZenUnsyncedWindow(this.window.raw);
     const windowRoot = new XULElement({
       element: this.window.document.documentElement,
     });
@@ -115,6 +138,7 @@ export class WebPanelsBrowser extends Browser {
       "#sidebar-box",
       "#context-bookmarkpage",
       "#context-viewsource",
+      "#zen-appcontent-navbar-wrapper",
     ];
 
     // Hide elements right after initialization
@@ -134,7 +158,16 @@ export class WebPanelsBrowser extends Browser {
     windowRoot.appendChild(style);
 
     // Fix nova styles for inner window
-    windowRoot.querySelector("#browser").setProperty("padding", "0px");
+    const bContainer = BROWSER_CONTAINER_SELECTORS.map((selector) =>
+      windowRoot.querySelector(selector),
+    ).find(Boolean);
+    if (bContainer) bContainer.setProperty("padding", "0px");
+    windowRoot
+      .querySelector("#zen-appcontent-wrapper")
+      ?.setProperty("min-width", "0px");
+    windowRoot
+      .querySelector("#zen-tabbox-wrapper")
+      ?.setProperty("min-width", "0px");
     const browserContainerStyle = new Style(`
       .browserContainer {
         overflow: unset !important;
@@ -149,13 +182,15 @@ export class WebPanelsBrowser extends Browser {
     // Full height for content
     windowRoot
       .querySelector("#tabbrowser-tabbox")
-      .setProperty("height", "100%");
+      ?.setProperty("height", "100%");
 
     // Position popups
-    windowRoot.querySelector("#mainPopupSet").setProperty("margin-left", "8px");
+    windowRoot
+      .querySelector("#mainPopupSet")
+      ?.setProperty("margin-left", "8px");
     windowRoot
       .querySelector("#notification-popup")
-      .setProperty("margin-top", "8px");
+      ?.setProperty("margin-top", "8px");
 
     // Add class for userChrome.css
     windowRoot.addClass("sb2-webpanels-window");
@@ -219,6 +254,7 @@ export class WebPanelsBrowser extends Browser {
       this.window.gBrowser.addTab("about:blank", {
         triggeringPrincipal: ScriptSecurityManagerWrapper.getSystemPrincipal(),
         userContextId: webPanelSettings.userContextId,
+        skipRoute: true,
       }),
     );
     tab.uuid = webPanelSettings.uuid;

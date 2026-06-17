@@ -1,10 +1,14 @@
+import { requireBrowserContainerElement } from "./utils/browser_layout.mjs";
 import { XULElement } from "./xul/base/xul_element.mjs";
 
 export class BrowserElements {
   static root = new XULElement({ element: window.document.documentElement });
-  static browser = new XULElement({
-    element: document.getElementById("browser"),
-  });
+
+  static get browser() {
+    return new XULElement({
+      element: requireBrowserContainerElement(),
+    });
+  }
 
   static tabbrowserTabbox = new XULElement({
     element: document.getElementById("tabbrowser-tabbox"),

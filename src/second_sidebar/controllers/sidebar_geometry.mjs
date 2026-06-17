@@ -112,8 +112,8 @@ export class SidebarGeometry {
     const areaRight = areaRect.right - areaRect.left;
     const areaBottom = areaRect.bottom - areaRect.top;
 
-    const sameWidth = width === null;
-    const sameHeight = height === null;
+    let sameWidth = width === null;
+    let sameHeight = height === null;
 
     if (top === null) top = boxRect.top;
     if (left === null) left = boxRect.left;

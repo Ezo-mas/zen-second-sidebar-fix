@@ -5,4 +5,9 @@ export const WEB_PANELS_BROWSER_CSS = `
     background-color: var(--toolbar-bgcolor, var(--toolbar-background-color));
     clip-path: inset(-1px 0 round 0 0 var(--border-radius-medium) var(--border-radius-medium));
   }
+
+  #zen-tabbox-wrapper .sb2-web-panels-browser {
+    background: var(--sb2-zen-surface);
+    clip-path: inset(-1px 0 round 0 0 var(--sb2-zen-radius) var(--sb2-zen-radius));
+  }
 `;
