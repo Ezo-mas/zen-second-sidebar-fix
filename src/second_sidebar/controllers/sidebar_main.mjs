@@ -108,8 +108,8 @@ export class SidebarMainController {
   }
 
   uncollapse() {
-    SidebarElements.sidebarMain.setProperty("margin-right", "0px");
-    SidebarElements.sidebarMain.setProperty("margin-left", "0px");
+    SidebarElements.sidebarMain.removeProperty("margin-right");
+    SidebarElements.sidebarMain.removeProperty("margin-left");
     SidebarElements.sidebarCollapseButton.setOpen(true);
   }
 }
