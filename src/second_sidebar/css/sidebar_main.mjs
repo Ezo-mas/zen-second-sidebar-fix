@@ -79,7 +79,10 @@ export const SIDEBAR_MAIN_CSS = `
     }
 
     #sb2-main[overlay="true"] {
-      background: var(--sb2-zen-surface);
+      background: var(--sb2-zen-overlay-surface);
+      box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--toolbox-textcolor, currentColor) 12%, transparent),
+        var(--sb2-zen-shadow);
     }
 
     .sb2-main-button {
