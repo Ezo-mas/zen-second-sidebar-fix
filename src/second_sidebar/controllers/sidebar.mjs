@@ -338,6 +338,9 @@ export class SidebarController {
     } else {
       SidebarElements.sidebarMain.removeAttribute("overlay");
     }
+    if (!autoHideSidebar) {
+        SidebarControllers.sidebarMainCollapser.uncollapse({ delay: 0 });
+    }
     // hide web panel when sidebar is hidden
     this.sidebarWidgetHideWebPanel = sidebarWidgetHideWebPanel;
     // shortcut for widget
