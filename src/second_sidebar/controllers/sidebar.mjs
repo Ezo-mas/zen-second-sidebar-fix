@@ -188,6 +188,7 @@ export class SidebarController {
     SidebarControllers.sidebarGeometry.setFloatingGeometry(floatingGeometry);
 
     SidebarElements.sidebarBox.show();
+    SidebarElements.webPanelsBrowser.forceRepaint();
     requestAnimationFrame(() => {
       if (!webPanelController.pinned()) {
         SidebarControllers.sidebarGeometry.calculateAndSetFloatingGeometry(

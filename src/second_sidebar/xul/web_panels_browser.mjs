@@ -222,6 +222,8 @@ export class WebPanelsBrowser extends Browser {
    */
   addTabSelectListener(callback) {
     this.window.gBrowser.tabpanels.addEventListener("select", () => callback());
+    this.forceRepaint();
+    callback();
   }
 
   /**
@@ -233,6 +235,20 @@ export class WebPanelsBrowser extends Browser {
       const browser = new Browser({ element: event.target });
       const tab = this.window.gBrowser.getTabForBrowser(browser);
       callback(WebPanelTab.fromTab(tab));
+    });
+  }
+  
+  /**
+   * Workaround for a Windows GPU-process bug: after this embedded window's
+   * remote content becomes visible or its active tab changes, Gecko
+   * sometimes fails to composite a frame even though the page is fully
+   * loaded and interactive. Toggling a paint-affecting property forces
+   * the compositor to rebuild the layer and actually flush a frame.
+   */
+  forceRepaint() {
+    this.setProperty("opacity", "0.9999");
+    requestAnimationFrame(() => {
+      this.removeProperty("opacity");
     });
   }
 
