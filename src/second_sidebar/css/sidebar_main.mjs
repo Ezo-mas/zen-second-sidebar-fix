@@ -50,16 +50,21 @@ export const SIDEBAR_MAIN_CSS = `
     }
 
     #sb2-main {
-      height: 100%;
-      margin-block: 0;
-      min-width: calc(var(--zen-toolbar-button-size, 16px) + var(--toolbarbutton-padding-outer, 4px) * 2 + var(--zen-toolbar-button-inner-padding, 6px) * 2);
-      background: var(--sb2-zen-surface);
-      color: var(--toolbox-textcolor, var(--sidebar-text-color));
-      border: var(--sb2-zen-border);
-      box-shadow: none;
-      box-sizing: border-box;
-      scrollbar-width: none;
-      backdrop-filter: blur(24px);
+    height: 100%;
+    margin-block: 0;
+    min-width: calc(var(--zen-toolbar-button-size, 16px) + var(--toolbarbutton-padding-outer, 4px) * 2 + var(--zen-toolbar-button-inner-padding, 6px) * 2);
+    background: var(--sb2-zen-surface);
+    color: var(--toolbox-textcolor, var(--sidebar-text-color));
+    border: var(--sb2-zen-border);
+    box-shadow: none;
+    box-sizing: border-box;
+    scrollbar-width: none;
+    }
+
+    @media (-moz-windows-mica) {
+      #sb2-main {
+        background: transparent;
+      }
     }
 
     #sb2-wrapper[position="right"] #sb2-main {
@@ -83,6 +88,12 @@ export const SIDEBAR_MAIN_CSS = `
       box-shadow:
         0 0 0 1px color-mix(in srgb, var(--toolbox-textcolor, currentColor) 12%, transparent),
         var(--sb2-zen-shadow);
+    }
+
+    @media -moz-pref('zen.theme.acrylic-elements') {
+      #sb2-main[overlay="true"] {
+        backdrop-filter: blur(28px) saturate(120%);
+      }
     }
 
     .sb2-main-button {

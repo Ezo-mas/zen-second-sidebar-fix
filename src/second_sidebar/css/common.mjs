@@ -5,9 +5,10 @@ export const COMMON_CSS = `
     --sb2-main-padding: var(--space-small);
     --sb2-main-web-panel-buttons-position: start;
     --sb2-zen-radius: var(--zen-border-radius, var(--border-radius-medium));
+    --sb2-zen-surface: var(--zen-colors-primary, var(--zen-colors-secondary, var(--colors-tertuiary, var(--toolbar-bgcolor))));
     --sb2-zen-toolbar-surface: var(--zen-colors-tertiary, var(--toolbar-bgcolor));
     --sb2-zen-surface-hover: var(--zen-colors-secondary, color-mix(in srgb, currentColor 10%, transparent));
-    --sb2-zen-overlay-surface: light-dark(color-mix(in oklab, white 15%, var(--zen-primary-color) 10%, transparent), color-mix(in oklab, black 15%, var(--zen-primary-color) 25%, transparent));
+    --sb2-zen-overlay-surface: light-dark(color-mix(in oklab, white 15%, var(--sb2-zen-surface) 10%, transparent), color-mix(in oklab, black 15%, var(--sb2-zen-surface) 25%, transparent));
     --sb2-zen-surface-active: var(--toolbarbutton-active-background, color-mix(in srgb, currentColor 14%, transparent));
     --sb2-zen-border: none;
     --sb2-zen-shadow: var(--content-area-shadow);
