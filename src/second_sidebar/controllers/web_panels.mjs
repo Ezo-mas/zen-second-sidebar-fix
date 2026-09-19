@@ -429,7 +429,9 @@ export class WebPanelsController {
       const activeWebPanelTab =
         SidebarElements.webPanelsBrowser.getActiveWebPanelTab();
       if (activeWebPanelTab.isEmpty()) {
-        SidebarControllers.sidebarController.close();
+        if (!SidebarControllers.sidebarController.closed()) {
+          SidebarControllers.sidebarController.close();
+        }
       } else {
         this.lastOpenedWebPanelUUID = activeWebPanelTab.uuid;
       }
