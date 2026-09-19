@@ -377,10 +377,6 @@ export class WebPanelController {
       this.#button.setOpen(false);
       if (this.#settings.unloadOnClose) {
         this.unload();
-      } else if (this.isActive()) {
-        // Keep the tab loaded, but stop treating the hidden panel as active.
-        // Otherwise a later tab-selection event opens it again.
-        SidebarElements.webPanelsBrowser.deselectWebPanelTab();
       }
     }
   }
