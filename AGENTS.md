@@ -2,10 +2,12 @@
 
 ## Project and runtime
 
-Second Sidebar is a privileged Firefox userChrome.js script loaded through
-fx-autoconfig. It adds a second sidebar and web panels to Firefox's browser UI.
-It is not a WebExtension or a Node.js/web application: there is no manifest,
-bundler, development server, or build step. Deploy the contents of `src/` as-is.
+Second Sidebar is a privileged Firefox and Zen Browser userChrome.js script loaded
+through fx-autoconfig (or compatible script loader). It adds a second sidebar and
+web panels to the browser UI. This repository is adapted for **Zen Browser** while
+maintaining compatibility with standard Firefox. It is not a WebExtension or a
+Node.js/web application: there is no manifest, bundler, development server, or
+build step. Deploy the contents of `src/` as-is.
 
 Read `README.md` for features and installation, and the relevant implementation
 before changing behavior. Follow applicable user-level agent instructions;
@@ -17,16 +19,17 @@ All paths below are relative to `src/second_sidebar/`, except the entry point.
 
 | Location                                       | Responsibility                                                                            |
 | ---------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `src/second_sidebar.uc.mjs`                    | Waits for Firefox startup, skips nested panel windows, injects and decorates the sidebar. |
+| `src/second_sidebar.uc.mjs`                    | Waits for Firefox/Zen startup, skips nested panel windows, injects and decorates sidebar. |
 | `sidebar_injector.mjs`                         | Loads settings/state, creates elements and controllers, then applies settings/state.      |
-| `sidebar_elements.mjs`, `browser_elements.mjs` | Sidebar element registry and access to existing Firefox chrome elements.                  |
+| `sidebar_elements.mjs`, `browser_elements.mjs` | Sidebar element registry and access to existing browser chrome elements.                  |
 | `sidebar_controllers.mjs`                      | Creates and connects controllers in dependency order.                                     |
 | `controllers/`                                 | Sidebar/panel behavior, geometry, shortcuts, popup actions, and cross-window events.      |
 | `xul/`, `xul/base/`                            | UI components and shared fluent wrappers around XUL/HTML elements.                        |
 | `css/`, `sidebar_decorator.mjs`                | CSS template-string exports, combined and injected into the chrome document.              |
 | `settings/`                                    | Defaults, serialization, persisted settings, and panel state.                             |
-| `wrappers/`                                    | Adapters for privileged Firefox globals and services.                                     |
-| `patchers/`                                    | Compatibility patches for Firefox's own UI implementation.                                |
+| `wrappers/`                                    | Adapters for privileged Firefox/Gecko globals and services.                               |
+| `patchers/`                                    | Compatibility patches for Firefox/Zen UI implementation.                                  |
+| `utils/browser_layout.mjs`                     | Browser container resolution (`#zen-tabbox-wrapper` for Zen, `#browser` for Firefox).     |
 | `utils/`, `icons/`                             | Shared helpers and SVG assets.                                                            |
 
 ## Implementation conventions
@@ -40,11 +43,19 @@ All paths below are relative to `src/second_sidebar/`, except the entry point.
 - Put behavior in controllers, UI construction in `xul/`, and Firefox API access
   in the corresponding wrapper. Reuse `XULElement` and `utils/xul.mjs` helpers.
   Preserve the XUL/HTML element distinction.
-- Use the existing `sb2-` IDs/classes and `--sb2-` CSS variables for new sidebar
-  styles. Preserve UUID-based panel/widget identities. Add new CSS exports to
-  `sidebar_decorator.mjs` when they need to be injected.
-- Match existing Firefox theme tokens and native controls. Keep keyboard focus,
-  shortcuts, tooltips, and both sidebar positions working when changing UI.
+- Support both Zen Browser and standard Firefox layout hierarchies. Avoid hardcoding
+  `#browser` when attaching or sizing wrappers; use `requireBrowserContainerElement()`
+  or selectors targeting `#zen-tabbox-wrapper, #browser`.
+- Use existing `sb2-` IDs/classes and `--sb2-` CSS variables for new sidebar
+  styles. In Zen Browser, adhere to `--sb2-zen-*` theme variables, `--zen-border-radius`,
+  `--zen-element-separation`, and `--zen-colors-*`. Preserve `:root:has(#zen-tabbox-wrapper)`
+  and `[zen-right-side="true"]` rules. Add new CSS exports to `sidebar_decorator.mjs`
+  when they need to be injected.
+- Match native theme tokens and controls. Keep keyboard focus, shortcuts, tooltips,
+  and both sidebar positions working across both browsers.
+- When uncollapsing the sidebar in controllers, remove inline margin properties
+  (`removeProperty("margin-right")` / `removeProperty("margin-left")`) rather than
+  forcing `0px`, allowing Zen's flex/grid layout engine to position adjacent content correctly.
 - `MozButton` and `Toggle` wrap HTML custom elements with `isXUL: false`;
   popup/menu wrappers use XUL. Reuse their factories when adding controls.
 - Before changing layout CSS, trace the controller that sets the element's
@@ -76,10 +87,22 @@ previous values when extending these flows.
 - Preserve startup ordering: wait for `UC_API.Runtime.startupFinished()` or
   `delayedStartupPromise`; skip `sb2-webpanels-window` and popup windows; load
   settings/state before creating elements, controllers, and applying values.
-- `xul/web_panels_browser.mjs` hosts a nested Firefox chrome window whose tabs
-  back the panels. Its startup observers, SessionStore handling, close commands,
-  popup notifications, and URL-bar patches are part of the implementation.
-  Validate changes to this code in a real Firefox instance.
+- `xul/web_panels_browser.mjs` hosts a nested chrome window whose tabs back the
+  panels. Its startup observers, SessionStore handling, close commands, popup
+  notifications, and URL-bar patches are part of the implementation.
+  Validate changes to this code in a real browser instance.
+- **Zen Browser chrome containment**: Zen wraps its tabbox and content inside
+  `#zen-tabbox-wrapper`. `SidebarBoxArea` (`xul/sidebar_box_area.mjs`) calculates
+  dimensions relative to `#zen-tabbox-wrapper` and reserves spacing using
+  `--zen-element-separation` (defaulting to 6px) and wrapper side positioning.
+- **Nested panel isolation in Zen**: The embedded chrome window hosting web panels
+  must be flagged with `win._zenStartupSyncFlag = "unsynced"` and
+  `zen-unsynced-window="true"` during creation and startup observers. This stops
+  Zen from treating the panel's internal window as a syncable workspace or tabbox.
+  Also ensure `#zen-appcontent-navbar-wrapper` remains hidden inside panel chrome.
+- **GPU compositing on Windows (Zen)**: Switching or showing web panels on Windows
+  under Zen can occasionally leave a blank frame. `WebPanelsBrowser.forceRepaint()`
+  briefly toggles `opacity: 0.9999` to force the compositor to paint content.
 - Reuse widget readiness helpers such as `doWhenButtonReady`; CustomizableUI
   instances are not always available synchronously in every window.
 - Use `controllers/events.mjs` for cross-window actions. Preserve event names,
@@ -93,9 +116,8 @@ previous values when extending these flows.
 - Preserve container identity and the existing loading/security context when
   creating or navigating panel tabs. Account for temporary panels, unload on
   close, reload timers, listeners, and observers when changing panel lifecycle.
-- Firefox internals are version-sensitive. For patcher changes, inspect the
-  actual target Firefox source (Searchfox's `firefox-main` may differ from the
-  installed release) and verify the text/regex replacement still matches.
+- Browser internals are version-sensitive. For patcher changes, inspect the
+  actual target browser source and verify the text/regex replacement still matches.
   Preserve temporary-module cleanup in `utils/files.mjs`. Keep these patches
   isolated rather than spreading source rewriting through controllers.
 
@@ -130,33 +152,48 @@ On PowerShell, `npm.cmd`/`npx.cmd` can be used if `.ps1` launchers are blocked.
 CI installs ESLint 9.7.0 and uploads SARIF using
 `@microsoft/eslint-formatter-sarif@3.1.0`; its lint step uses `continue-on-error`.
 Inspect lint output rather than treating a green workflow as proof of no errors.
-The Prettier workflow uses a dry run. Add legitimate Firefox globals to the
+The Prettier workflow uses a dry run. Add legitimate Firefox/Zen globals to the
 existing ESLint globals list when needed, rather than broadly disabling rules.
-Node syntax checks and lint cannot validate privileged Firefox APIs or XUL UI.
+Node syntax checks and lint cannot validate privileged browser APIs or XUL UI.
 
-## Firefox validation
+## Firefox and Zen Browser validation
 
-Use a dedicated test profile with fx-autoconfig. Follow the README: copy
-`src/second_sidebar.uc.mjs` and `src/second_sidebar/` into the profile's
-`chrome/JS/`, enable `toolkit.legacyUserProfileCustomizations.stylesheets` and
-`dom.allow_scripts_to_close_windows`, clear the startup cache as documented by
-fx-autoconfig, then restart Firefox. Do not assume a page reload reloads modules.
+Use a dedicated test profile with fx-autoconfig (or Zen's script loader):
+
+1. Locate the test profile folder (in Firefox or Zen, navigate to `about:support`
+   and click **Open Folder** / **Show in Finder** next to _Profile Folder_).
+2. Copy `src/second_sidebar.uc.mjs` and `src/second_sidebar/` into the profile's
+   `chrome/JS/` folder.
+3. Ensure `toolkit.legacyUserProfileCustomizations.stylesheets` and
+   `dom.allow_scripts_to_close_windows` are set to `true` in `about:config`.
+4. Clear the startup cache (via `about:support` → **Clear startup cache...** or
+   by deleting the `startupCache` directory inside the profile folder) and restart.
 
 Select manual scenarios according to the change:
 
-- Startup, sidebar show/hide, left/right placement, toolbar customization.
-- Panel create/edit/delete, navigation, close/reopen, and temporary panels.
-- Floating/pinned geometry, resizing, auto-hide, and keyboard shortcuts.
-- A second browser window, propagation of edits, and persistence after restart.
-- Containers, zoom, mute, unload/reload, and permission popups when affected.
-- Light/dark themes and affected conditional theme rules for color/style changes.
+- **General**: Startup, sidebar show/hide, left/right placement, toolbar customization.
+- **Zen-specific scenarios**:
+  - Zen vertical tabs / sidebar on left vs right (`[zen-right-side="true"]`).
+  - Second sidebar positioned on the same side as Zen's tab bar vs opposite side.
+  - Zen compact mode (collapsing Zen's sidebar) and auto-hide overlay behavior.
+  - Zen split views and workspace switching while web panels are active.
+  - Floating panel placement inside `#zen-tabbox-wrapper` and margin spacing.
+  - Windows GPU rendering (ensuring web panels do not open as blank frames).
+- **Panels**: Panel create/edit/delete, navigation, close/reopen, and temporary panels.
+- **Geometry & Lifecycle**: Floating/pinned geometry, resizing, auto-hide, and shortcuts.
+- **Multi-window**: A second browser window, propagation of edits, and persistence.
+- **Tabs & Media**: Containers, zoom, mute, unload/reload, and permission popups.
+- **Theming**: Light/dark themes, Zen accent surfaces, and conditional theme tokens.
 
-Check Firefox's Browser Console for errors. Record the Firefox version, operating
-system, and scenarios actually exercised. If Firefox cannot be run, say which
-runtime checks remain unverified; do not present static checks as runtime tests.
+Check the Browser Console (`Ctrl+Shift+J` or `Cmd+Shift+J`) for errors. Record the
+browser version (Firefox or Zen), operating system, and scenarios actually exercised.
+If the browser cannot be run, state which runtime checks remain unverified.
 
 ## Upstream references
 
 - [fx-autoconfig installation and startup cache](https://github.com/MrOtherGuy/fx-autoconfig)
+- [Zen Browser Desktop Repository](https://github.com/zen-browser/desktop)
+- [Zen Second Sidebar Fix Fork](https://github.com/Ezo-mas/zen-second-sidebar-fix)
+- [Upstream Firefox Second Sidebar Repository](https://github.com/aminought/firefox-second-sidebar)
 - [Searchfox: Firefox source and internal APIs](https://searchfox.org/firefox-main/source/)
 - [Firefox desktop components](https://firefoxux.github.io/firefox-desktop-components/)
