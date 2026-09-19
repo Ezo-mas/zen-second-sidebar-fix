@@ -149,6 +149,28 @@ export const SIDEBAR_MAIN_CSS = `
     }
   }
 
+  /* Zen expands the compact toolbar by increasing its layout height, which
+     shrinks #zen-tabbox-wrapper and the second-sidebar launcher. Keep its
+     expanded state above the page instead. */
+  @media -moz-pref("zen.view.compact.hide-toolbar") {
+    :root[zen-compact-mode="true"]:not([zen-single-toolbar="true"]):has(#zen-tabbox-wrapper) {
+      #zen-appcontent-wrapper {
+        position: relative;
+      }
+
+      #zen-appcontent-navbar-wrapper:is(
+        [zen-has-hover],
+        [has-popup-menu],
+        [zen-compact-mode-active]
+      ) {
+        position: absolute;
+        z-index: 4 !important;
+        inset-inline: 0;
+        top: 0;
+      }
+    }
+  }
+
   #sb2-main[fullscreenShouldAnimate] {
     transition: 0.8s margin-right ease-out, 0.8s margin-left ease-out;
   }
