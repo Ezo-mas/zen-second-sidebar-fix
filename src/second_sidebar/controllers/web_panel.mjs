@@ -200,6 +200,13 @@ export class WebPanelController {
   }
 
   /**
+   * @returns {string}
+   */
+  getUserContextId() {
+    return this.#settings.userContextId;
+  }
+
+  /**
    *
    * @returns {string}
    */
