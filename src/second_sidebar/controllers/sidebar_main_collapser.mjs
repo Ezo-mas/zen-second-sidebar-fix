@@ -239,7 +239,9 @@ export class SidebarMainCollapser {
       this.hideSidebarTimer = setTimeout(() => {
         this.shouldAnimate(animate);
         this.fullScreenShouldAnimate(fullScreenAnimate);
-        SidebarControllers.sidebarMainController.collapse();
+        SidebarControllers.sidebarMainController.collapse({
+          animated: animate || fullScreenAnimate,
+        });
         if (saveLastOpenedWebPanel) {
           const webPanelController =
             SidebarControllers.webPanelsController.getActive();
@@ -278,7 +280,7 @@ export class SidebarMainCollapser {
           const webPanelController = SidebarControllers.webPanelsController.get(
             this.lastOpenedWebPanel,
           );
-          webPanelController.switchWebPanel();
+          webPanelController?.switchWebPanel({ forceOpen: true });
           this.lastOpenedWebPanel = null;
         }
         this.showSidebarTimer = null;

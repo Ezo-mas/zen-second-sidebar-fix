@@ -8,6 +8,7 @@ export class SidebarSettings {
    * @param {object} params
    * @param {string} params.position
    * @param {string} params.padding
+   * @param {boolean} params.allowWindowDragging
    * @param {string} params.newWebPanelPosition
    * @param {string} params.defaultFloatingOffset
    * @param {boolean} params.autoHideBackButton
@@ -19,6 +20,7 @@ export class SidebarSettings {
    * @param {string} params.autoHideSidebarBehavior
    * @param {boolean} params.sidebarWidgetHideWebPanel
    * @param {string} params.sidebarWidgetShortcut
+   * @param {string} params.lastWebPanelShortcut
    * @param {boolean} params.hideSidebarAnimated
    * @param {boolean} params.hideToolbarAnimated
    * @param {boolean} params.enableSidebarBoxHint
@@ -26,6 +28,7 @@ export class SidebarSettings {
   constructor({
     position = "right",
     padding = "small",
+    allowWindowDragging = true,
     newWebPanelPosition = "before",
     defaultFloatingOffset = "small",
     autoHideBackButton = false,
@@ -37,12 +40,14 @@ export class SidebarSettings {
     autoHideSidebarBehavior = "inline",
     sidebarWidgetHideWebPanel = false,
     sidebarWidgetShortcut = "",
+    lastWebPanelShortcut = "",
     hideSidebarAnimated = true,
     hideToolbarAnimated = true,
     enableSidebarBoxHint = false,
   }) {
     this.position = position;
     this.padding = padding;
+    this.allowWindowDragging = allowWindowDragging;
     this.newWebPanelPosition = newWebPanelPosition;
     this.defaultFloatingOffset = defaultFloatingOffset;
     this.autoHideBackButton = autoHideBackButton;
@@ -52,6 +57,7 @@ export class SidebarSettings {
     this.autoHideSidebarBehavior = autoHideSidebarBehavior;
     this.sidebarWidgetHideWebPanel = sidebarWidgetHideWebPanel;
     this.sidebarWidgetShortcut = sidebarWidgetShortcut;
+    this.lastWebPanelShortcut = lastWebPanelShortcut;
     this.tooltip = tooltip;
     this.tooltipFullUrl = tooltipFullUrl;
     this.hideSidebarAnimated = hideSidebarAnimated;
@@ -68,6 +74,7 @@ export class SidebarSettings {
     return new SidebarSettings({
       position: pref.position,
       padding: pref.padding,
+      allowWindowDragging: pref.allowWindowDragging,
       newWebPanelPosition: pref.newWebPanelPosition,
       defaultFloatingOffset: pref.defaultFloatingOffset,
       autoHideBackButton: pref.autoHideBackButton,
@@ -79,6 +86,7 @@ export class SidebarSettings {
       autoHideSidebarBehavior: pref.autoHideSidebarBehavior,
       sidebarWidgetHideWebPanel: pref.sidebarWidgetHideWebPanel,
       sidebarWidgetShortcut: pref.sidebarWidgetShortcut,
+      lastWebPanelShortcut: pref.lastWebPanelShortcut,
       hideSidebarAnimated: pref.hideSidebarAnimated,
       hideToolbarAnimated: pref.hideToolbarAnimated,
       enableSidebarBoxHint: pref.enableSidebarBoxHint,
@@ -89,6 +97,7 @@ export class SidebarSettings {
     Settings.save(PREF, {
       position: this.position,
       padding: this.padding,
+      allowWindowDragging: this.allowWindowDragging,
       newWebPanelPosition: this.newWebPanelPosition,
       defaultFloatingOffset: this.defaultFloatingOffset,
       autoHideBackButton: this.autoHideBackButton,
@@ -100,6 +109,7 @@ export class SidebarSettings {
       autoHideSidebarBehavior: this.autoHideSidebarBehavior,
       sidebarWidgetHideWebPanel: this.sidebarWidgetHideWebPanel,
       sidebarWidgetShortcut: this.sidebarWidgetShortcut,
+      lastWebPanelShortcut: this.lastWebPanelShortcut,
       hideSidebarAnimated: this.hideSidebarAnimated,
       hideToolbarAnimated: this.hideToolbarAnimated,
       enableSidebarBoxHint: this.enableSidebarBoxHint,

@@ -14,6 +14,8 @@ export class SidebarMainSettingsController {
         sendEvents(SidebarEvents.EDIT_SIDEBAR_POSITION, { value }),
       padding: (value) =>
         sendEvents(SidebarEvents.EDIT_SIDEBAR_PADDING, { value }),
+      allowWindowDragging: (value) =>
+        sendEvents(SidebarEvents.EDIT_SIDEBAR_ALLOW_WINDOW_DRAGGING, { value }),
       newWebPanelPosition: (value) =>
         sendEvents(SidebarEvents.EDIT_SIDEBAR_NEW_WEB_PANEL_POSITION, {
           value,
@@ -47,6 +49,10 @@ export class SidebarMainSettingsController {
           autoHideSidebarBehavior,
           sidebarWidgetHideWebPanel,
           sidebarWidgetShortcut,
+        }),
+      lastWebPanelShortcut: (value) =>
+        sendEvents(SidebarEvents.EDIT_SIDEBAR_LAST_WEB_PANEL_SHORTCUT, {
+          value,
         }),
       hideSidebarAnimated: (value) =>
         sendEvents(SidebarEvents.EDIT_SIDEBAR_AUTO_HIDE_ANIMATED, { value }),
