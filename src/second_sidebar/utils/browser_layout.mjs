@@ -1,5 +1,6 @@
 export const BROWSER_CONTAINER_SELECTORS = ["#zen-tabbox-wrapper", "#browser"];
-export const BROWSER_CONTAINER_SELECTOR = BROWSER_CONTAINER_SELECTORS.join(", ");
+export const BROWSER_CONTAINER_SELECTOR =
+  BROWSER_CONTAINER_SELECTORS.join(", ");
 
 /**
  * @param {ParentNode} root
