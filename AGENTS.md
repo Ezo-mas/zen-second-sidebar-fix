@@ -87,6 +87,9 @@ previous values when extending these flows.
 - Preserve startup ordering: wait for `UC_API.Runtime.startupFinished()` or
   `delayedStartupPromise`; skip `sb2-webpanels-window` and popup windows; load
   settings/state before creating elements, controllers, and applying values.
+- Keep popup detection compatible with extension-created windows. A popup may
+  expose `window.toolbar.visible === false` without listing `extrachrome` in its
+  `chromehidden` attribute. Never inject `#sb2-wrapper` into these windows.
 - `xul/web_panels_browser.mjs` hosts a nested chrome window whose tabs back the
   panels. Its startup observers, SessionStore handling, close commands, popup
   notifications, and URL-bar patches are part of the implementation.
@@ -189,6 +192,11 @@ Select manual scenarios according to the change:
 - **Geometry & Lifecycle**: Floating/pinned geometry, resizing, auto-hide, and shortcuts.
 - **Multi-window**: A second browser window, propagation of edits, and persistence.
 - **Tabs & Media**: Containers, zoom, mute, unload/reload, and permission popups.
+- **Extension popups & passkeys**: With a panel open, start and cancel or complete
+  a Bitwarden passkey prompt. Confirm the Bitwarden window has no `#sb2-wrapper`,
+  its credential list is visible without unloading the panel, and the panel is
+  still usable afterward. Open a normal browser window as a control and confirm
+  the sidebar still loads there.
 - **Theming**: Light/dark themes, Zen accent surfaces, and conditional theme tokens.
 
 Check the Browser Console (`Ctrl+Shift+J` or `Cmd+Shift+J`) for errors. Record the
@@ -202,11 +210,11 @@ Zen Browser patches contributed by `Ezo-mas/zen-second-sidebar-fix`.
 
 ### Remote hierarchy
 
-| Remote | URL | Purpose |
-| -------- | -------------------------------------------- | ---------------------------------------- |
-| `origin` | `sinazadeh/zen-second-sidebar` | Your fork (push target) |
-| `upstream` | `aminought/firefox-second-sidebar` | Original source of truth |
-| `Ezo-mas` | `Ezo-mas/zen-second-sidebar-fix` | Zen patch reference (read-only) |
+| Remote     | URL                                | Purpose                         |
+| ---------- | ---------------------------------- | ------------------------------- |
+| `origin`   | `sinazadeh/zen-second-sidebar`     | Your fork (push target)         |
+| `upstream` | `aminought/firefox-second-sidebar` | Original source of truth        |
+| `Ezo-mas`  | `Ezo-mas/zen-second-sidebar-fix`   | Zen patch reference (read-only) |
 
 The GitHub UI **Sync fork** button targets `Ezo-mas` (the immediate parent fork).
 Always sync from `upstream` via the terminal or the **Sync upstream** workflow.
