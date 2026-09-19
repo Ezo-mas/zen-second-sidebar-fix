@@ -1,4 +1,8 @@
 import { BrowserElements } from "../browser_elements.mjs";
+import {
+  getZenElementSeparation,
+  isZenBrowserContainer,
+} from "../utils/zen.mjs";
 import { Div } from "./base/div.mjs";
 
 /**
@@ -17,13 +21,13 @@ export class SidebarBoxArea extends Div {
    * @returns {SidebarBoxArea} This instance for method chaining.
    */
   updatePosition() {
-    if (BrowserElements.browser.id === "zen-tabbox-wrapper") {
+    if (isZenBrowserContainer(BrowserElements.browser)) {
       const browserRect = BrowserElements.browser.getBoundingClientRect();
       const sidebarMainRect = document
         .getElementById("sb2-main")
         ?.getBoundingClientRect();
       const sidebarWidth = sidebarMainRect?.width ?? 0;
-      const gap = this.#getZenElementSeparation();
+      const gap = getZenElementSeparation(document);
       const reservedWidth = sidebarWidth > 0 ? sidebarWidth + gap : 0;
       const wrapperPosition =
         document.getElementById("sb2-wrapper")?.getAttribute("position") ??
@@ -45,17 +49,5 @@ export class SidebarBoxArea extends Div {
       .setProperty("width", `${rect.width}px`)
       .setProperty("height", `${rect.height}px`);
     return this;
-  }
-
-  /**
-   * @returns {number}
-   */
-  #getZenElementSeparation() {
-    const value = Number.parseFloat(
-      getComputedStyle(document.documentElement).getPropertyValue(
-        "--zen-element-separation",
-      ),
-    );
-    return Number.isFinite(value) ? value : 6;
   }
 }

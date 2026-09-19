@@ -8,6 +8,7 @@ import { SessionStoreWrapper } from "../wrappers/session_store.mjs";
 import { Style } from "./base/style.mjs";
 import { UrlbarInputPatcher } from "../patchers/urlbar_input_patcher.mjs";
 import { BROWSER_CONTAINER_SELECTORS } from "../utils/browser_layout.mjs";
+import { markZenWindowUnsynced } from "../utils/zen.mjs";
 import { WebPanelSettings } from "../settings/web_panel_settings.mjs"; // eslint-disable-line no-unused-vars
 import { WebPanelState } from "../settings/web_panel_state.mjs"; // eslint-disable-line no-unused-vars
 import { WebPanelTab } from "./web_panel_tab.mjs";
@@ -54,9 +55,9 @@ export class WebPanelsBrowser extends Browser {
     ObserversWrapper.addObserver(this, BEFORE_SHOW_EVENT);
     ObserversWrapper.addObserver(this, INITIALIZED_EVENT);
     this.addEventListener(DOM_WINDOW_CREATED_EVENT, (event) => {
-      this.#markZenUnsyncedWindow(event.target?.defaultView ?? event.target);
+      markZenWindowUnsynced(event.target?.defaultView ?? event.target);
     });
-    this.#markZenUnsyncedWindow(this.element.contentWindow);
+    markZenWindowUnsynced(this.element.contentWindow);
     this.setAttribute("src", AppConstantsWrapper.BROWSER_CHROME_URL);
   }
 
@@ -71,11 +72,11 @@ export class WebPanelsBrowser extends Browser {
     }
     console.log(`${this.window.name}: got event ${topic}`);
     if (topic === BEFORE_SHOW_EVENT) {
-      this.#markZenUnsyncedWindow(subj);
+      markZenWindowUnsynced(subj);
       ObserversWrapper.removeObserver(this, BEFORE_SHOW_EVENT);
       this.initWindow();
     } else if (topic === INITIALIZED_EVENT) {
-      this.#markZenUnsyncedWindow(subj);
+      markZenWindowUnsynced(subj);
       ObserversWrapper.removeObserver(this, INITIALIZED_EVENT);
       this.#hackSessionStore();
       this.#hackCloseWindowCommand();
@@ -108,22 +109,8 @@ export class WebPanelsBrowser extends Browser {
     }
   }
 
-  // Mark the embedded browser chrome window as unsynced in zen
-  #markZenUnsyncedWindow(win) {
-    try {
-      if (!win) return;
-      win._zenStartupSyncFlag = "unsynced";
-      win.document?.documentElement?.setAttribute(
-        "zen-unsynced-window",
-        "true",
-      );
-    } catch (error) {
-      console.log("Failed to mark web panels window as Zen unsynced:", error);
-    }
-  }
-
   initWindow() {
-    this.#markZenUnsyncedWindow(this.window.raw);
+    markZenWindowUnsynced(this.window.raw);
     const windowRoot = new XULElement({
       element: this.window.document.documentElement,
     });
