@@ -145,7 +145,9 @@ export class SidebarElements {
       !separatorElement ||
       !contextSearchSelectElement
     ) {
-      console.log("Context menu items skipped because menu anchors are missing");
+      console.log(
+        "Context menu items skipped because menu anchors are missing",
+      );
       return;
     }
 
