@@ -16,6 +16,7 @@ export default [
         openTrustedLinkIn: "readonly",
         AppConstants: "readonly",
         BrowserCommands: "readonly",
+        BrowsingContext: "readonly",
         Cc: "readonly",
         Ci: "readonly",
         ContextualIdentityService: "readonly",

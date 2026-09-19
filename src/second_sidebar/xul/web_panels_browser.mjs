@@ -2,6 +2,7 @@ import { AppConstantsWrapper } from "../wrappers/app_constants.mjs";
 import { Browser } from "./base/browser.mjs";
 import { BrowserCommandsWrapper } from "../wrappers/browser_commands.mjs";
 import { ObserversWrapper } from "../wrappers/observers.mjs";
+import { PopupNotificationsPatcher } from "../patchers/popup_notifications_patcher.mjs";
 import { ScriptSecurityManagerWrapper } from "../wrappers/script_security_manager.mjs";
 import { SessionStoreWrapper } from "../wrappers/session_store.mjs";
 import { Style } from "./base/style.mjs";
@@ -20,6 +21,7 @@ const INITIALIZED_EVENT = "browser-delayed-startup-finished";
 const DOM_WINDOW_CREATED_EVENT = "DOMWindowCreated";
 const DOM_WINDOW_CLOSED_EVENT = "domwindowclosed";
 const DIALOG_OPEN_EVENT = "dialogopen";
+const WEBAUTHN_PROMPT_EVENT = "webauthn-prompt";
 
 const FIRST_TAB_INDEX = 0;
 
@@ -53,6 +55,7 @@ export class WebPanelsBrowser extends Browser {
     console.log("Initializing web panels browser...");
     ObserversWrapper.addObserver(this, BEFORE_SHOW_EVENT);
     ObserversWrapper.addObserver(this, INITIALIZED_EVENT);
+    ObserversWrapper.addObserver(this, WEBAUTHN_PROMPT_EVENT);
     this.addEventListener(DOM_WINDOW_CREATED_EVENT, (event) => {
       markZenWindowUnsynced(event.target?.defaultView ?? event.target);
     });
@@ -64,8 +67,14 @@ export class WebPanelsBrowser extends Browser {
    *
    * @param {Window} subj
    * @param {string} topic
+   * @param {string?} data
    */
-  observe(subj, topic) {
+  observe(subj, topic, data = null) {
+    if (topic === WEBAUTHN_PROMPT_EVENT) {
+      this.#deactivateForWebAuthn(data);
+      return;
+    }
+
     if (this.window.name !== subj.name) {
       return;
     }
@@ -81,6 +90,26 @@ export class WebPanelsBrowser extends Browser {
       this.#hackCloseWindowCommand();
       this.initialized = true;
       console.log(`${this.window.name}: web panels browser initialized`);
+    }
+  }
+
+  /**
+   * WebAuthn extensions require the requesting browser to be the active tab
+   * context. An active nested panel tab otherwise wins that selection.
+   *
+   * @param {string?} data
+   */
+  #deactivateForWebAuthn(data) {
+    try {
+      const { browsingContextId, prompt } = JSON.parse(data);
+      if (prompt?.type === "cancel") return;
+
+      const browsingContext = BrowsingContext.get(browsingContextId);
+      if (browsingContext?.topChromeWindow === window) {
+        this.deselectWebPanelTab();
+      }
+    } catch (error) {
+      console.log("Failed to deactivate web panel for WebAuthn:", error);
     }
   }
 
@@ -193,6 +222,9 @@ export class WebPanelsBrowser extends Browser {
 
     // Close first dialog window within first 5 seconds
     this.#listenToFirstDialogAndClose();
+
+    // Patch PopupNotifications
+    PopupNotificationsPatcher.patch();
 
     // Patch #urlbar-input
     UrlbarInputPatcher.patch();
