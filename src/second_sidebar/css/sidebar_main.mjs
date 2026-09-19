@@ -80,6 +80,50 @@ export const SIDEBAR_MAIN_CSS = `
       box-shadow: 2px 0 8px color-mix(in srgb, black 12%, transparent);
     }
 
+    /* Zen keeps its compact sidebar outside #zen-tabbox-wrapper while it is
+       expanded. Reserve its measured width when both sidebars share an edge. */
+    &:is(
+      [zen-compact-mode="true"][zen-sidebar-expanded="true"],
+      [zen-compact-mode="true"]:has(
+          #navigator-toolbox:is(
+              [zen-has-hover],
+              [zen-user-show],
+              [zen-has-empty-tab],
+              [flash-popup],
+              [has-popup-menu],
+              [movingtab],
+              [zen-compact-mode-active]
+            )
+        ),
+      [zen-compact-mode="true"][zen-renaming-tab="true"]
+    ):not([zen-right-side="true"]) #sb2-wrapper[position="left"] #sb2-main {
+      margin-inline-start: calc(
+        var(--actual-zen-sidebar-width, var(--zen-sidebar-width, 0px)) +
+          var(--zen-element-separation, 6px)
+      );
+    }
+
+    &:is(
+      [zen-compact-mode="true"][zen-sidebar-expanded="true"],
+      [zen-compact-mode="true"]:has(
+          #navigator-toolbox:is(
+              [zen-has-hover],
+              [zen-user-show],
+              [zen-has-empty-tab],
+              [flash-popup],
+              [has-popup-menu],
+              [movingtab],
+              [zen-compact-mode-active]
+            )
+        ),
+      [zen-compact-mode="true"][zen-renaming-tab="true"]
+    )[zen-right-side="true"] #sb2-wrapper[position="right"] #sb2-main {
+      margin-inline-end: calc(
+        var(--actual-zen-sidebar-width, var(--zen-sidebar-width, 0px)) +
+          var(--zen-element-separation, 6px)
+      );
+    }
+
     #sb2-main[overlay="true"] {
       background: var(--sb2-zen-overlay-surface);
       box-shadow:
