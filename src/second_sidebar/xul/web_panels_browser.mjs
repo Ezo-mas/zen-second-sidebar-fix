@@ -2,7 +2,6 @@ import { AppConstantsWrapper } from "../wrappers/app_constants.mjs";
 import { Browser } from "./base/browser.mjs";
 import { BrowserCommandsWrapper } from "../wrappers/browser_commands.mjs";
 import { ObserversWrapper } from "../wrappers/observers.mjs";
-import { PopupNotificationsPatcher } from "../patchers/popup_notifications_patcher.mjs";
 import { ScriptSecurityManagerWrapper } from "../wrappers/script_security_manager.mjs";
 import { SessionStoreWrapper } from "../wrappers/session_store.mjs";
 import { Style } from "./base/style.mjs";
@@ -194,9 +193,6 @@ export class WebPanelsBrowser extends Browser {
 
     // Close first dialog window within first 5 seconds
     this.#listenToFirstDialogAndClose();
-
-    // Patch PopupNotifications
-    PopupNotificationsPatcher.patch();
 
     // Patch #urlbar-input
     UrlbarInputPatcher.patch();
