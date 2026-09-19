@@ -189,6 +189,9 @@ Select manual scenarios according to the change:
   - Floating panel placement inside `#zen-tabbox-wrapper` and margin spacing.
   - Windows GPU rendering (ensuring web panels do not open as blank frames).
 - **Panels**: Panel create/edit/delete, navigation, close/reopen, and temporary panels.
+  Close a loaded panel with "Unload from memory after closing" disabled, exercise
+  normal tab/window activity, and confirm it stays closed; reopening it must
+  preserve the page and session state.
 - **Geometry & Lifecycle**: Floating/pinned geometry, resizing, auto-hide, and shortcuts.
 - **Multi-window**: A second browser window, propagation of edits, and persistence.
 - **Tabs & Media**: Containers, zoom, mute, unload/reload, and permission popups.
