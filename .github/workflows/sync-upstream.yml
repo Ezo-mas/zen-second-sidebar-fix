@@ -1,0 +1,154 @@
+# Checks weekly (and on-demand) whether aminought/firefox-second-sidebar has
+# new commits that have not yet been merged into this fork. When it finds
+# any it opens a Pull Request so the Zen-specific fixes can be reviewed and
+# merged on top of the new upstream work.
+#
+# Required repository secret (Settings -> Secrets -> Actions):
+#   SYNC_PAT - a fine-grained Personal Access Token with
+#              "Contents: Read & Write" and "Pull requests: Read & Write"
+#              scopes on this repository. The default GITHUB_TOKEN cannot
+#              open PRs that trigger other workflows.
+
+name: Sync upstream
+
+on:
+  schedule:
+    # Every Monday at 09:00 UTC
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run - report but do not open a PR"
+        type: boolean
+        default: false
+
+jobs:
+  check-and-sync:
+    name: Check for upstream changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    env:
+      UPSTREAM_REPO: aminought/firefox-second-sidebar
+      UPSTREAM_BRANCH: master
+      BASE_BRANCH: master
+      SYNC_BRANCH: sync/upstream-${{ github.run_id }}
+
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          # Use a PAT so the pushed branch can trigger PR workflows.
+          token: ${{ secrets.SYNC_PAT || secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/${{ env.UPSTREAM_REPO }}.git
+          git fetch upstream ${{ env.UPSTREAM_BRANCH }}
+
+      - name: Check for new upstream commits
+        id: diff
+        run: |
+          COUNT=$(git rev-list --count HEAD..upstream/${{ env.UPSTREAM_BRANCH }})
+          echo "new_commits=$COUNT" >> "$GITHUB_OUTPUT"
+          if [ "$COUNT" -gt 0 ]; then
+            echo "### New upstream commits ($COUNT)" >> "$GITHUB_STEP_SUMMARY"
+            git log --oneline HEAD..upstream/${{ env.UPSTREAM_BRANCH }} >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Fork is up to date with upstream." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Exit if no new commits
+        if: steps.diff.outputs.new_commits == '0'
+        run: echo "Nothing to do." && exit 0
+
+      - name: Exit if dry run
+        if: inputs.dry_run == true && steps.diff.outputs.new_commits != '0'
+        run: |
+          echo "Dry-run: ${{ steps.diff.outputs.new_commits }} new upstream commit(s) found. No PR opened." >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+
+      - name: Configure git
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create sync branch and merge upstream
+        id: merge
+        run: |
+          git checkout -b ${{ env.SYNC_BRANCH }}
+          # Attempt a no-edit merge; conflicts are expected in Zen-specific files.
+          git merge --no-edit upstream/${{ env.UPSTREAM_BRANCH }} || true
+          HAS_CONFLICTS=$(git diff --name-only --diff-filter=U | wc -l | tr -d ' ')
+          echo "conflicts=$HAS_CONFLICTS" >> "$GITHUB_OUTPUT"
+
+      - name: Commit merge (no conflicts)
+        if: steps.merge.outputs.conflicts == '0'
+        run: |
+          git commit --allow-empty -m \
+            "chore: merge upstream aminought/firefox-second-sidebar"
+
+      - name: Stage conflict markers and commit (conflicts present)
+        if: steps.merge.outputs.conflicts != '0'
+        run: |
+          # Stage every file including those with conflict markers so the PR
+          # shows reviewers exactly what needs manual resolution.
+          git add -A
+          git commit -m \
+            "chore: merge upstream (conflicts need resolution)"
+          echo "Warning: ${{ steps.merge.outputs.conflicts }} merge conflict(s) were left in the branch." >> "$GITHUB_STEP_SUMMARY"
+          echo "Resolve them locally then push to complete the sync." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Push sync branch
+        run: git push origin ${{ env.SYNC_BRANCH }}
+
+      - name: Open Pull Request
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.SYNC_PAT || secrets.GITHUB_TOKEN }}
+          script: |
+            const conflicts = Number('${{ steps.merge.outputs.conflicts }}');
+            const newCommits = '${{ steps.diff.outputs.new_commits }}';
+
+            let body = `## Upstream sync from \`${{ env.UPSTREAM_REPO }}\`
+
+            This PR was opened automatically by the **Sync upstream** workflow.
+
+            **${newCommits} new commit(s)** from upstream are included in this branch.
+            `;
+
+            if (conflicts > 0) {
+              body += `
+            ### Merge conflicts (${conflicts} file(s))
+
+            The following files are known to conflict with Zen Browser patches:
+            - \`src/second_sidebar/controllers/sidebar_main.mjs\` - uncollapse margin handling
+            - \`src/second_sidebar/css/common.mjs\` - \`--sb2-zen-*\` CSS variable definitions
+
+            **To resolve locally:**
+            \`\`\`bash
+            git fetch origin
+            git checkout ${{ env.SYNC_BRANCH }}
+            # Edit the conflicting files, keeping Zen-specific changes
+            git add <resolved-files>
+            git commit
+            git push origin ${{ env.SYNC_BRANCH }}
+            \`\`\`
+
+            See the *Upstream synchronization playbook* in \`AGENTS.md\` for full guidance.
+            `;
+            }
+
+            const { data: pr } = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              title: `chore: sync ${newCommits} upstream commit(s) from aminought/firefox-second-sidebar`,
+              head:  '${{ env.SYNC_BRANCH }}',
+              base:  '${{ env.BASE_BRANCH }}',
+              body:  body,
+              draft: conflicts > 0,
+            });
+            core.notice(`PR opened: ${pr.html_url}`);

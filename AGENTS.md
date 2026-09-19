@@ -156,6 +156,12 @@ The Prettier workflow uses a dry run. Add legitimate Firefox/Zen globals to the
 existing ESLint globals list when needed, rather than broadly disabling rules.
 Node syntax checks and lint cannot validate privileged browser APIs or XUL UI.
 
+A **Sync upstream** workflow (`.github/workflows/sync-upstream.yml`) runs every
+Monday at 09:00 UTC and opens a Pull Request whenever `aminought/firefox-second-sidebar`
+has new commits. It can also be triggered manually via **Actions → Sync upstream →
+Run workflow**. A `SYNC_PAT` repository secret is required for full PR functionality;
+see the workflow file header for setup instructions.
+
 ## Firefox and Zen Browser validation
 
 Use a dedicated test profile with fx-autoconfig (or Zen's script loader):
@@ -188,6 +194,73 @@ Select manual scenarios according to the change:
 Check the Browser Console (`Ctrl+Shift+J` or `Cmd+Shift+J`) for errors. Record the
 browser version (Firefox or Zen), operating system, and scenarios actually exercised.
 If the browser cannot be run, state which runtime checks remain unverified.
+
+## Upstream synchronization playbook
+
+This fork tracks `aminought/firefox-second-sidebar` (upstream) while preserving
+Zen Browser patches contributed by `Ezo-mas/zen-second-sidebar-fix`.
+
+### Remote hierarchy
+
+| Remote | URL | Purpose |
+| -------- | -------------------------------------------- | ---------------------------------------- |
+| `origin` | `sinazadeh/zen-second-sidebar` | Your fork (push target) |
+| `upstream` | `aminought/firefox-second-sidebar` | Original source of truth |
+| `Ezo-mas` | `Ezo-mas/zen-second-sidebar-fix` | Zen patch reference (read-only) |
+
+The GitHub UI **Sync fork** button targets `Ezo-mas` (the immediate parent fork).
+Always sync from `upstream` via the terminal or the **Sync upstream** workflow.
+
+### Sync procedure
+
+```sh
+# 1. Fetch the latest upstream commits
+git fetch upstream
+
+# 2. Check how many new commits exist
+git log HEAD..upstream/master --oneline
+
+# 3. Merge into master
+git checkout master
+git merge upstream/master
+
+# 4. Resolve conflicts (see hotspots below), then:
+git add <resolved-files>
+git commit
+git push origin master
+```
+
+### Known conflict hotspots
+
+These two files are the most likely to conflict because upstream changes their
+code paths that were also modified by the Zen port:
+
+1. **`src/second_sidebar/controllers/sidebar_main.mjs`** — `uncollapse()` method:
+   - **Keep** `removeProperty("margin-right")` / `removeProperty("margin-left")`
+     (Zen patch — allows Zen's flex engine to manage spacing).
+   - **Accept** any new upstream additions to `#clearCollapseTransitionEndListener()`
+     or other new methods alongside, rather than discarding them.
+
+2. **`src/second_sidebar/css/common.mjs`** — `:root` CSS variable block:
+   - **Keep** all `--sb2-zen-*` variable definitions (Zen patch).
+   - **Accept** any new upstream `@media -moz-pref("browser.nova.enabled")` blocks.
+   - **Keep** both `#browser,` and `#zen-tabbox-wrapper {` in the `position: relative`
+     rule at the bottom of the file.
+
+### Zen compatibility checklist
+
+Before committing any change to source files, verify:
+
+- [ ] Container attachment uses `requireBrowserContainerElement()` (not bare `#browser`).
+- [ ] New CSS selectors target `#zen-tabbox-wrapper` alongside `#browser` where needed.
+- [ ] Sidebar uncollapse uses `removeProperty("margin-right")` / `removeProperty("margin-left")`
+      rather than setting `0px` inline.
+- [ ] Nested panel windows are marked with `_zenStartupSyncFlag = "unsynced"` and
+      `zen-unsynced-window="true"`.
+- [ ] New `--sb2-*` CSS variables have Zen-aware fallbacks using `--sb2-zen-*` tokens.
+- [ ] Both `[zen-right-side="true"]` sidebar positions work correctly.
+- [ ] `WebPanelsBrowser.forceRepaint()` is called after tab switches on Windows.
+- [ ] `npx prettier --write` and `npx eslint` both pass on changed files.
 
 ## Upstream references
 
