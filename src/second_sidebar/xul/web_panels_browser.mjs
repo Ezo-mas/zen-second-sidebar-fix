@@ -224,6 +224,13 @@ export class WebPanelsBrowser extends Browser {
   }
 
   /**
+   * @param {function(KeyboardEvent):void} callback
+   */
+  addKeypressListener(callback) {
+    this.window.addEventListener("keypress", callback);
+  }
+
+  /**
    *
    * @param {function(WebPanelTab):void} callback
    */

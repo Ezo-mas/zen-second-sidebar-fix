@@ -451,6 +451,15 @@ export class WebPanelsController {
     });
   }
 
+  /**
+   * @param {function(KeyboardEvent):void} callback
+   */
+  addKeypressListener(callback) {
+    SidebarElements.webPanelsBrowser.waitInitialization(() => {
+      SidebarElements.webPanelsBrowser.addKeypressListener(callback);
+    });
+  }
+
   #unwrapButtons() {
     const buttons = [
       SidebarElements.webPanelNewButton,

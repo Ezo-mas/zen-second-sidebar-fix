@@ -5,16 +5,23 @@ import { getLayoutIndependentKey } from "../utils/keyboard.mjs";
 export class Shortcuts {
   constructor() {
     this.enabled = true;
+    this.onKeypress = this.#onKeypress.bind(this);
     this.#setupListeners();
   }
 
   #setupListeners() {
-    BrowserElements.root.addEventListener("keypress", (event) => {
-      if (!this.enabled) return;
-      if (this.trySidebarWidgetShortcut(event)) return;
-      if (this.tryLastWebPanelShortcut(event)) return;
-      this.tryWebPanelShortcuts(event);
-    });
+    BrowserElements.root.addEventListener("keypress", this.onKeypress);
+    SidebarControllers.webPanelsController.addKeypressListener(this.onKeypress);
+  }
+
+  /**
+   * @param {KeyboardEvent} event
+   */
+  #onKeypress(event) {
+    if (!this.enabled) return;
+    if (this.trySidebarWidgetShortcut(event)) return;
+    if (this.tryLastWebPanelShortcut(event)) return;
+    this.tryWebPanelShortcuts(event);
   }
 
   /**
