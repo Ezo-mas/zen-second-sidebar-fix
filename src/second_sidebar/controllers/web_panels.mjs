@@ -442,16 +442,23 @@ export class WebPanelsController {
   #setupMainBrowserListener() {
     const gBrowser = new WindowWrapper().gBrowser;
     const checkHostnameChange = () => {
-      const url = gBrowser.selectedBrowser?.getCurrentUrl();
-      if (!url) return;
-      const hostname = extractHostname(url);
-      if (
-        this.#lastMainBrowserHostname !== null &&
-        hostname !== this.#lastMainBrowserHostname
-      ) {
-        this.#reloadPanelsOnUrlChange();
+      try {
+        const url = gBrowser.raw?.selectedBrowser?.currentURI?.spec;
+        if (!url) return;
+        const hostname = extractHostname(url);
+        if (
+          this.#lastMainBrowserHostname !== null &&
+          hostname !== this.#lastMainBrowserHostname
+        ) {
+          this.#reloadPanelsOnUrlChange();
+        }
+        this.#lastMainBrowserHostname = hostname;
+      } catch (error) {
+        console.error(
+          "Second Sidebar: failed to check main browser hostname change",
+          error,
+        );
       }
-      this.#lastMainBrowserHostname = hostname;
     };
 
     gBrowser.addEventListener("TabSelect", checkHostnameChange);
@@ -492,10 +499,18 @@ export class WebPanelsController {
       for (const [uuid, webPanelController] of this.webPanelControllers) {
         if (uuid === activeWebPanelTab.uuid) {
           webPanelController.open();
-        } else {
-          webPanelController.close();
         }
       }
+      // Defer closing other panels: closing an unload-on-close panel removes
+      // its tab, and Gecko reassigns the selected tab mid-removal, which
+      // would reenter this handler synchronously and corrupt tabbrowser state.
+      setTimeout(() => {
+        for (const [uuid, webPanelController] of this.webPanelControllers) {
+          if (uuid !== activeWebPanelTab.uuid) {
+            webPanelController.close();
+          }
+        }
+      }, 0);
     });
     // Revert zoom to default when it's changed
     SidebarElements.webPanelsBrowser.addZoomChangeListener((tab) => {
