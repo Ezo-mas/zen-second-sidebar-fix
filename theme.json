@@ -6,7 +6,7 @@
   "scripts": {
     "src": {
       "second_sidebar.uc.mjs": {
-        "include": ["chrome://browser/content/browser.xhtml*"]
+        "include": ["*browser.xhtml*"]
       }
     }
   }
