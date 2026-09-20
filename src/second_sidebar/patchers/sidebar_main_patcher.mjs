@@ -1,4 +1,4 @@
-import { removeFile, writeFile } from "../utils/files.mjs";
+import { removePatchedModule, writePatchedModule } from "../utils/files.mjs";
 
 import { SidebarElements } from "../sidebar_elements.mjs";
 
@@ -30,13 +30,13 @@ export class SidebarMainPatcher {
   }
 
   static async #reuseModule(moduleSource) {
-    const chromePath = await writeFile(
+    const chromePath = await writePatchedModule(
       PATCHED_MODULE_RELATIVE_PATH,
       moduleSource,
     );
     const module = await import(chromePath);
     this.#addListeners(module);
-    await removeFile(PATCHED_MODULE_RELATIVE_PATH);
+    await removePatchedModule(PATCHED_MODULE_RELATIVE_PATH);
   }
 
   /**

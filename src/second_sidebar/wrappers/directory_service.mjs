@@ -11,15 +11,4 @@ export class DirectoryServiceWrapper {
   static get profileChromeDir() {
     return Services.dirsvc.get("UChrm", Ci.nsIFile).path;
   }
-
-  /**
-   *
-   * @param {string} path - absolute filesystem path
-   * @returns {string} a file:// URL for that path
-   */
-  static fileURIFromPath(path) {
-    const file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
-    file.initWithPath(path);
-    return Services.io.newFileURI(file).spec;
-  }
 }

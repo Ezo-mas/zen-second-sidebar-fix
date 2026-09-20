@@ -1,4 +1,4 @@
-import { removeFile, writeFile } from "../utils/files.mjs";
+import { removePatchedModule, writePatchedModule } from "../utils/files.mjs";
 
 const MODULE_URL = "resource://gre/modules/PopupNotifications.sys.mjs";
 const PATCHED_MODULE_RELATIVE_PATH = "fss/PopupNotifications.sys.mjs";
@@ -24,13 +24,13 @@ export class PopupNotificationsPatcher {
   }
 
   static async #replaceModule(moduleSource) {
-    const chromePath = await writeFile(
+    const chromePath = await writePatchedModule(
       PATCHED_MODULE_RELATIVE_PATH,
       moduleSource,
     );
     const module = await import(chromePath);
     this.#defineLazyGetter(module);
-    await removeFile(PATCHED_MODULE_RELATIVE_PATH);
+    await removePatchedModule(PATCHED_MODULE_RELATIVE_PATH);
   }
 
   /**
