@@ -160,6 +160,19 @@ for older exports.
   fx-autoconfig already restricts `.uc.mjs` loading to); dropping it would
   make Sine dynamically import this script into every chrome window,
   including ones lacking `gBrowser`/the sidebar's expected DOM.
+- **Sine's `sine.allow-unsafe-js` gate**: this is not something this repo
+  controls, but it's the single most likely reason "installed via Sine but
+  the sidebar never appears" gets reported (see
+  [#4](https://github.com/sinazadeh/zen-second-sidebar/issues/4) triage).
+  In `core/utils.sys.mjs`'s `getScripts()`, a mod's scripts are only ever
+  added to Sine's load list when `this.allowUnsafeJS || mod.origin ===
+  "store"`. A mod installed by pasting a repository (as opposed to Sine's
+  own reviewed marketplace) has `origin` unset, so unless the user has set
+  `sine.allow-unsafe-js` to `true` in `about:config`, the script is never
+  even attempted - no `include`/`exclude` check, no import, no console
+  output, nothing. If a Sine install "does nothing" with an otherwise-clean
+  console, check this pref before suspecting `theme.json` or the script
+  itself.
 - **Why `src/` stays**: flattening `src/second_sidebar.uc.mjs` and
   `src/second_sidebar/` to the repo root would look tidier and match how
   small single-file Sine mods are usually laid out, but this fork's `src/`
