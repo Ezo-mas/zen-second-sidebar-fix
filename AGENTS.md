@@ -173,6 +173,25 @@ for older exports.
   output, nothing. If a Sine install "does nothing" with an otherwise-clean
   console, check this pref before suspecting `theme.json` or the script
   itself.
+- **fx-autoconfig and Sine share one `config.js` per browser installation,
+  not per profile.** Both work by pointing Firefox's
+  `general.config.filename` at a single bootstrap file inside the browser's
+  install directory - there can only be one active at a time. Installing
+  Sine's bootloader for any one profile replaces that shared file, silently
+  disabling fx-autoconfig's own `chrome/JS/`-scanning bootstrap on **every
+  other profile on the same installation**, not just the one Sine was set
+  up on. Sine's own mod registry (`mods.json`) is per-profile, so a profile
+  that only had this addon copied into `chrome/JS/` the old way ends up
+  with *no* loader running it at all once this happens - not a caching
+  issue, not a code regression, just no active bootstrap left that knows
+  about it. This was the actual root cause behind
+  [#4](https://github.com/sinazadeh/zen-second-sidebar/issues/4)'s report
+  once traced fully: it isn't "doesn't detect Sine's startup" (that part is
+  the `browser-delayed-startup-finished` fallback above), it's "a sibling
+  profile's Sine install silently retired the loader this profile depended
+  on." Don't assume a report of "stopped working after installing Sine" is
+  about the same profile Sine was added to - ask about sibling profiles on
+  the same installation before chasing a code-level cause.
 - **Why `src/` stays**: flattening `src/second_sidebar.uc.mjs` and
   `src/second_sidebar/` to the repo root would look tidier and match how
   small single-file Sine mods are usually laid out, but this fork's `src/`

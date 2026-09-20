@@ -59,8 +59,10 @@ https://github.com/user-attachments/assets/cd79d644-ca2c-4a30-ae8e-c265f41768b6
 
 Pick whichever loader you already use (or prefer) — both install the exact same script.
 
-> [!IMPORTANT]
-> Already have Second Sidebar working via fx-autoconfig and now adding Sine on top? Sine only loads scripts it knows about (added through its own mod manager) — it won't pick up files that were manually copied into fx-autoconfig's `chrome/JS/`, and if Sine's bootstrap ends up superseding fx-autoconfig's, that old copy can stop running entirely (this is what [#4](https://github.com/sinazadeh/zen-second-sidebar/issues/4) reports). Add it as a Sine mod using the instructions below, then remove `second_sidebar.uc.mjs` and `second_sidebar/` from `chrome/JS/` so it isn't set up two different ways at once.
+> [!WARNING]
+> **fx-autoconfig and Sine share one `config.js` per browser _installation_, not per profile.** Both ultimately work by pointing Firefox's `general.config.filename` at a single bootstrap file inside the browser's install directory (e.g. `C:\Program Files\Zen Browser\`) — there can only be one. Installing Sine's bootloader for _any one profile_ replaces that shared file, which silently stops fx-autoconfig from running on **every other profile on that same installation** too, even ones you never touched. Sine's own mod list is per-profile, so a profile that only had Second Sidebar copied into `chrome/JS/` the old way ends up with no loader running it at all - this is what [#4](https://github.com/sinazadeh/zen-second-sidebar/issues/4) reports, and it looks like "it broke on my main profile" even though nothing there was touched directly.
+>
+> If you want to try Sine without this risk, test it on a separate browser _installation_ (a portable copy, a different release channel, etc.), not just a separate profile. If you've already installed Sine's bootloader and other profiles on the same install stopped loading `second_sidebar.uc.mjs`, your options are: add Second Sidebar as a Sine mod on those profiles too (below) and delete the now-inert `chrome/JS/second_sidebar.uc.mjs` / `second_sidebar/`, or revert Sine's bootloader to restore fx-autoconfig's original `config.js` if you'd rather not run Sine on this installation at all.
 
 ### Sine (no manual file copying)
 
