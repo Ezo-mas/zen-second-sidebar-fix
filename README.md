@@ -19,7 +19,7 @@ A Firefox userChrome.js script that brings a second sidebar with web panels like
 Pick whichever loader you already use (or prefer) — both install the exact same script.
 
 > [!WARNING]
-> **fx-autoconfig and Sine share one `config.js` per browser _installation_, not per profile.** Both ultimately work by pointing Firefox's `general.config.filename` at a single bootstrap file inside the browser's install directory (e.g. `C:\Program Files\Zen Browser\`) — there can only be one. Installing Sine's bootloader for _any one profile_ replaces that shared file, which silently stops fx-autoconfig from running on **every other profile on that same installation** too, even ones you never touched. Sine's own mod list is per-profile, so a profile that only had Second Sidebar copied into `chrome/JS/` the old way ends up with no loader running it at all - this is what [#4](https://github.com/sinazadeh/zen-second-sidebar/issues/4) reports, and it looks like "it broke on my main profile" even though nothing there was touched directly.
+> **fx-autoconfig and Sine share one `config.js` per browser _installation_, not per profile.** Both ultimately work by pointing Firefox's `general.config.filename` at a single bootstrap file inside the browser's install directory (e.g. `C:\Program Files\Zen Browser\`) — there can only be one. Installing Sine's bootloader for _any one profile_ replaces that shared file, which silently stops fx-autoconfig from running on **every other profile on that same installation** too, even ones you never touched. Sine's own mod list is per-profile, so a profile that only had Second Sidebar copied into `chrome/JS/` the old way ends up with no loader running it at all - this is what [#4](https://github.com/sinazadeh/zen-second-sidebar-enhanced/issues/4) reports, and it looks like "it broke on my main profile" even though nothing there was touched directly.
 >
 > If you want to try Sine without this risk, test it on a separate browser _installation_ (a portable copy, a different release channel, etc.), not just a separate profile. If you've already installed Sine's bootloader and other profiles on the same install stopped loading `second_sidebar.uc.mjs`, your options are: add Second Sidebar as a Sine mod on those profiles too (below) and delete the now-inert `chrome/JS/second_sidebar.uc.mjs` / `second_sidebar/`, or revert Sine's bootloader to restore fx-autoconfig's original `config.js` if you'd rather not run Sine on this installation at all.
 
@@ -28,7 +28,7 @@ Pick whichever loader you already use (or prefer) — both install the exact sam
 1. Install [Sine](https://github.com/CosmoCreeper/Sine) if you haven't already.
 2. In Sine's mod manager, add a mod from a repository and enter:
    ```
-   sinazadeh/zen-second-sidebar/tree/master
+   sinazadeh/zen-second-sidebar-enhanced/tree/master
    ```
    The explicit `/tree/master` is required — this repo's default branch is `master`, and Sine assumes `main` when it's left off.
 3. In `about:config`, set `sine.allow-unsafe-js` to `true`. This isn't specific to Second Sidebar: Sine only runs JavaScript automatically for mods installed from its own reviewed marketplace; anything added directly from a repository (like this, until/unless it's published there) needs this explicitly enabled, or its script is silently never loaded at all.

@@ -163,10 +163,10 @@ for older exports.
 - **Sine's `sine.allow-unsafe-js` gate**: this is not something this repo
   controls, but it's the single most likely reason "installed via Sine but
   the sidebar never appears" gets reported (see
-  [#4](https://github.com/sinazadeh/zen-second-sidebar/issues/4) triage).
+  [#4](https://github.com/sinazadeh/zen-second-sidebar-enhanced/issues/4) triage).
   In `core/utils.sys.mjs`'s `getScripts()`, a mod's scripts are only ever
   added to Sine's load list when `this.allowUnsafeJS || mod.origin ===
-  "store"`. A mod installed by pasting a repository (as opposed to Sine's
+"store"`. A mod installed by pasting a repository (as opposed to Sine's
   own reviewed marketplace) has `origin` unset, so unless the user has set
   `sine.allow-unsafe-js` to `true` in `about:config`, the script is never
   even attempted - no `include`/`exclude` check, no import, no console
@@ -182,10 +182,10 @@ for older exports.
   other profile on the same installation**, not just the one Sine was set
   up on. Sine's own mod registry (`mods.json`) is per-profile, so a profile
   that only had this addon copied into `chrome/JS/` the old way ends up
-  with *no* loader running it at all once this happens - not a caching
+  with _no_ loader running it at all once this happens - not a caching
   issue, not a code regression, just no active bootstrap left that knows
   about it. This was the actual root cause behind
-  [#4](https://github.com/sinazadeh/zen-second-sidebar/issues/4)'s report
+  [#4](https://github.com/sinazadeh/zen-second-sidebar-enhanced/issues/4)'s report
   once traced fully: it isn't "doesn't detect Sine's startup" (that part is
   the `browser-delayed-startup-finished` fallback above), it's "a sibling
   profile's Sine install silently retired the loader this profile depended
@@ -202,7 +202,7 @@ for older exports.
 - **Double-injection guard**: `run()` in `second_sidebar.uc.mjs` sets a
   `sb2-injected` class on `BrowserElements.root` before doing anything else,
   and bails out if it's already set. This exists for
-  [#4](https://github.com/sinazadeh/zen-second-sidebar/issues/4): a profile
+  [#4](https://github.com/sinazadeh/zen-second-sidebar-enhanced/issues/4): a profile
   with this addon set up both the old way (copied into fx-autoconfig's
   `chrome/JS/`) and the new way (installed as a Sine mod) could otherwise
   have both loaders inject into the same window, producing duplicate
@@ -375,11 +375,11 @@ Zen Browser patches contributed by `Ezo-mas/zen-second-sidebar-fix`.
 
 ### Remote hierarchy
 
-| Remote     | URL                                | Purpose                         |
-| ---------- | ---------------------------------- | ------------------------------- |
-| `origin`   | `sinazadeh/zen-second-sidebar`     | Your fork (push target)         |
-| `upstream` | `aminought/firefox-second-sidebar` | Original source of truth        |
-| `Ezo-mas`  | `Ezo-mas/zen-second-sidebar-fix`   | Zen patch reference (read-only) |
+| Remote     | URL                                     | Purpose                         |
+| ---------- | --------------------------------------- | ------------------------------- |
+| `origin`   | `sinazadeh/zen-second-sidebar-enhanced` | Your fork (push target)         |
+| `upstream` | `aminought/firefox-second-sidebar`      | Original source of truth        |
+| `Ezo-mas`  | `Ezo-mas/zen-second-sidebar-fix`        | Zen patch reference (read-only) |
 
 The GitHub UI **Sync fork** button targets `Ezo-mas` (the immediate parent fork).
 Always sync from `upstream` via the terminal or the **Sync upstream** workflow.

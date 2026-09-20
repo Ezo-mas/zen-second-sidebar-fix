@@ -2,7 +2,7 @@
   "id": "zen-second-sidebar",
   "name": "Zen Second Sidebar Enhanced",
   "description": "Adds a second sidebar with web panels to Firefox and Zen Browser.",
-  "homepage": "https://github.com/sinazadeh/zen-second-sidebar",
+  "homepage": "https://github.com/sinazadeh/zen-second-sidebar-enhanced",
   "scripts": {
     "src": {
       "second_sidebar.uc.mjs": {
