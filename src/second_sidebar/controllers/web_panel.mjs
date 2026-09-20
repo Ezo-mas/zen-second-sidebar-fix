@@ -29,8 +29,6 @@ export class WebPanelController {
   #reloadTimer = null;
   /**@type {number?} */
   #nextReloadAt = null;
-  /**@type {string?} */
-  #lastHostname = null;
 
   /**
    *
@@ -66,12 +64,6 @@ export class WebPanelController {
         }
       }
     };
-    const onLocationChange = (aWebProgress, aRequest, aLocation) => {
-      callback();
-      if (aWebProgress.isTopLevel) {
-        this.#checkHostnameChange(aLocation?.spec);
-      }
-    };
     return {
       QueryInterface: ChromeUtilsWrapper.generateQI([
         "nsIWebProgressListener",
@@ -79,30 +71,10 @@ export class WebPanelController {
         "nsISupportsWeakReference",
         "nsIXULBrowserWindow",
       ]),
-      onLocationChange: onLocationChange,
+      onLocationChange: callback,
       onStateChange: onStateChange,
       onStatusChange: callback,
     };
-  }
-
-  /**
-   *
-   * @param {string?} url
-   */
-  #checkHostnameChange(url) {
-    if (!url) return;
-    const hostname = extractHostname(url);
-    if (
-      this.#settings.reloadOnUrlChange &&
-      this.#lastHostname !== null &&
-      hostname !== this.#lastHostname
-    ) {
-      this.#log(`reload on hostname change: ${hostname}`);
-      this.#lastHostname = hostname;
-      this.reload();
-      return;
-    }
-    this.#lastHostname = hostname;
   }
 
   #applySelector() {
@@ -437,7 +409,6 @@ export class WebPanelController {
    */
   unload(force = true) {
     this.#stopTimer();
-    this.#lastHostname = null;
     const activeWebPanelController =
       SidebarControllers.webPanelsController.getActive();
     if (activeWebPanelController?.getUUID() === this.getUUID()) {
@@ -734,6 +705,15 @@ export class WebPanelController {
   setReloadOnUrlChange(value) {
     this.#settings.reloadOnUrlChange = value;
   }
+
+  /**
+   *
+   * @returns {boolean}
+   */
+  getReloadOnUrlChange() {
+    return this.#settings.reloadOnUrlChange;
+  }
+
   /**
    *
    * @param {number} width

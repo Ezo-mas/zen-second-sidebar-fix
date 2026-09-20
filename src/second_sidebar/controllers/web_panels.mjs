@@ -6,6 +6,7 @@ import {
 } from "./events.mjs";
 
 import { NetUtilWrapper } from "../wrappers/net_utils.mjs";
+import { ChromeUtilsWrapper } from "../wrappers/chrome_utils.mjs";
 import { SidebarControllers } from "../sidebar_controllers.mjs";
 import { SidebarElements } from "../sidebar_elements.mjs";
 import { WebPanelController } from "./web_panel.mjs";
@@ -14,15 +15,20 @@ import { WebPanelState } from "../settings/web_panel_state.mjs";
 import { WebPanelsSettings } from "../settings/web_panels_settings.mjs";
 import { WebPanelsState } from "../settings/web_panels_state.mjs";
 import { WindowWrapper } from "../wrappers/window.mjs";
+import { extractHostname } from "../utils/url.mjs";
 import { gCustomizeModeWrapper } from "../wrappers/g_customize_mode.mjs";
 
 export class WebPanelsController {
+  /**@type {string?} */
+  #lastMainBrowserHostname = null;
+
   constructor() {
     /**@type {Map<string, WebPanelController>} */
     this.webPanelControllers = new Map();
     /**@type {string?} */
     this.lastOpenedWebPanelUUID = null;
     this.#setupListeners();
+    this.#setupMainBrowserListener();
   }
 
   #setupListeners() {
@@ -429,6 +435,46 @@ export class WebPanelsController {
       webPanelController.remove();
       this.delete(uuid);
     });
+  }
+
+  // Reload panels with "reload on address change" enabled whenever the main
+  // browser's active tab is switched or navigated to a different hostname.
+  #setupMainBrowserListener() {
+    const gBrowser = new WindowWrapper().gBrowser;
+    const checkHostnameChange = () => {
+      const url = gBrowser.selectedBrowser?.getCurrentUrl();
+      if (!url) return;
+      const hostname = extractHostname(url);
+      if (
+        this.#lastMainBrowserHostname !== null &&
+        hostname !== this.#lastMainBrowserHostname
+      ) {
+        this.#reloadPanelsOnUrlChange();
+      }
+      this.#lastMainBrowserHostname = hostname;
+    };
+
+    gBrowser.addEventListener("TabSelect", checkHostnameChange);
+    gBrowser.addProgressListener({
+      QueryInterface: ChromeUtilsWrapper.generateQI([
+        "nsIWebProgressListener",
+        "nsISupportsWeakReference",
+      ]),
+      onLocationChange: (webProgress) => {
+        if (webProgress.isTopLevel) checkHostnameChange();
+      },
+    });
+  }
+
+  #reloadPanelsOnUrlChange() {
+    for (const webPanelController of this.getAll()) {
+      if (
+        webPanelController.getReloadOnUrlChange() &&
+        !webPanelController.isUnloaded()
+      ) {
+        webPanelController.reload();
+      }
+    }
   }
 
   #setupWebPanelsBrowserListeners() {

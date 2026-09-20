@@ -126,4 +126,17 @@ export class TabBrowserWrapper {
   addEventListener(type, callback) {
     this.raw.addEventListener(type, callback);
   }
+
+  /**
+   * Notified only about the currently selected browser: fires on navigation
+   * of the active tab and also when the selected tab itself changes.
+   *
+   * @param {object} progressListener
+   */
+  addProgressListener(progressListener) {
+    this.raw.addProgressListener(
+      progressListener,
+      Ci.nsIWebProgress.NOTIFY_LOCATION,
+    );
+  }
 }
