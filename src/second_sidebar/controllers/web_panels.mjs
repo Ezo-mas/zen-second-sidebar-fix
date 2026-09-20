@@ -389,6 +389,14 @@ export class WebPanelsController {
       webPanelController.setPeriodicReload(periodicReload);
     });
 
+    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_RELOAD_ON_URL_CHANGE, (event) => {
+      const uuid = event.detail.uuid;
+      const reloadOnUrlChange = event.detail.reloadOnUrlChange;
+
+      const webPanelController = this.get(uuid);
+      webPanelController.setReloadOnUrlChange(reloadOnUrlChange);
+    });
+
     listenEvent(WebPanelEvents.EDIT_WEB_PANEL_ZOOM_OUT, (event) => {
       const uuid = event.detail.uuid;
 

@@ -18,6 +18,7 @@ export const WebPanelEvents = {
   EDIT_WEB_PANEL_HIDE_NOTIFICATION_BADGE:
     "edit_web_panel_hide_notification_badge",
   EDIT_WEB_PANEL_PERIODIC_RELOAD: "edit_web_panel_periodic_reload",
+  EDIT_WEB_PANEL_RELOAD_ON_URL_CHANGE: "edit_web_panel_reload_on_url_change",
   EDIT_WEB_PANEL_ZOOM_OUT: "edit_web_panel_zoom_out",
   EDIT_WEB_PANEL_ZOOM_IN: "edit_web_panel_zoom_in",
   EDIT_WEB_PANEL_ZOOM: "edit_web_panel_zoom",

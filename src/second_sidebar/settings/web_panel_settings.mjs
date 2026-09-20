@@ -24,6 +24,7 @@ export class WebPanelSettings {
    * @param {boolean} params.hideToolbar
    * @param {string} params.userContextId
    * @param {number} params.periodicReload
+   * @param {boolean} params.reloadOnUrlChange
    * @param {boolean} params.hideSoundIcon
    * @param {boolean} params.hideNotificationBadge
    * @param {boolean} params.selectorEnabled
@@ -53,6 +54,7 @@ export class WebPanelSettings {
       hideToolbar = false,
       userContextId = ScriptSecurityManagerWrapper.DEFAULT_USER_CONTEXT_ID,
       periodicReload = 0,
+      reloadOnUrlChange = false,
       hideSoundIcon = false,
       hideNotificationBadge = false,
       selectorEnabled = false,
@@ -82,6 +84,7 @@ export class WebPanelSettings {
     this.hideToolbar = hideToolbar;
     this.userContextId = userContextId;
     this.periodicReload = periodicReload;
+    this.reloadOnUrlChange = reloadOnUrlChange;
     this.hideSoundIcon = hideSoundIcon;
     this.hideNotificationBadge = hideNotificationBadge;
     this.selectorEnabled = selectorEnabled;
@@ -120,6 +123,7 @@ export class WebPanelSettings {
         hideToolbar: object.hideToolbar,
         userContextId: object.userContextId,
         periodicReload: object.periodicReload,
+        reloadOnUrlChange: object.reloadOnUrlChange,
         hideSoundIcon: object.hideSoundIcon,
         hideNotificationBadge: object.hideNotificationBadge,
         selectorEnabled: object.selectorEnabled,
@@ -160,6 +164,7 @@ export class WebPanelSettings {
       hideToolbar: this.hideToolbar,
       userContextId: this.userContextId,
       periodicReload: this.periodicReload,
+      reloadOnUrlChange: this.reloadOnUrlChange,
       hideSoundIcon: this.hideSoundIcon,
       hideNotificationBadge: this.hideNotificationBadge,
       selectorEnabled: this.selectorEnabled,

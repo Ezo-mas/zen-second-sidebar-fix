@@ -154,6 +154,12 @@ export class WebPanelEditController {
           periodicReload: Number(periodicReload),
         });
       },
+      reloadOnUrlChange: (uuid, reloadOnUrlChange) => {
+        sendEvents(WebPanelEvents.EDIT_WEB_PANEL_RELOAD_ON_URL_CHANGE, {
+          uuid,
+          reloadOnUrlChange,
+        });
+      },
       zoomOut: (uuid) => {
         sendEvents(WebPanelEvents.EDIT_WEB_PANEL_ZOOM_OUT, {
           uuid,

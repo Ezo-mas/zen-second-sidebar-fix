@@ -99,6 +99,9 @@ export class WebPanelPopupEdit extends Panel {
     this.hideSoundIconToggle = new Toggle();
     this.hideNotificationBadgeToggle = new Toggle();
     this.periodicReloadMenuList = this.#createPeriodicReloadMenuList();
+    this.reloadOnUrlChangeToggle = new Toggle({
+      id: "sb2-popup-reload-on-url-change-toggle",
+    });
     this.zoomOutButton = createSubviewIconicButton(ICONS.MINUS, {
       tooltipText: "Zoom Out",
     });
@@ -371,6 +374,11 @@ export class WebPanelPopupEdit extends Panel {
             ),
             new ToolbarSeparator(),
             createPopupGroup("Periodic reload", this.periodicReloadMenuList),
+            new ToolbarSeparator(),
+            createPopupGroup(
+              "Reload when address changes",
+              this.reloadOnUrlChangeToggle,
+            ),
           ]),
           createPopupSet("Keyboard shortcut", [
             createPopupRow(this.shortcutInput, this.shortcutResetButton),
@@ -425,6 +433,7 @@ export class WebPanelPopupEdit extends Panel {
    * @param {function(string, boolean):void} callbacks.hideSoundIcon
    * @param {function(string, boolean):void} callbacks.hideNotificationBadge
    * @param {function(string, number):void} callbacks.periodicReload
+   * @param {function(string, boolean):void} callbacks.reloadOnUrlChange
    * @param {function(string):number} callbacks.zoomOut
    * @param {function(string):number} callbacks.zoomIn
    * @param {function(string, number):number} callbacks.zoom
@@ -453,6 +462,7 @@ export class WebPanelPopupEdit extends Panel {
     hideSoundIcon,
     hideNotificationBadge,
     periodicReload,
+    reloadOnUrlChange,
     zoomOut,
     zoomIn,
     zoom,
@@ -480,6 +490,7 @@ export class WebPanelPopupEdit extends Panel {
     this.onHideSoundIcon = hideSoundIcon;
     this.onHideNotificationBadge = hideNotificationBadge;
     this.onPeriodicReload = periodicReload;
+    this.onReloadOnUrlChange = reloadOnUrlChange;
     this.onZoomOut = zoomOut;
     this.onZoomIn = zoomIn;
     this.onZoom = zoom;
@@ -584,6 +595,12 @@ export class WebPanelPopupEdit extends Panel {
       periodicReload(
         this.settings.uuid,
         this.periodicReloadMenuList.getValue(),
+      );
+    });
+    this.reloadOnUrlChangeToggle.addEventListener("toggle", () => {
+      reloadOnUrlChange(
+        this.settings.uuid,
+        this.reloadOnUrlChangeToggle.getPressed(),
       );
     });
     this.zoomOutButton.addEventListener("click", (event) => {
@@ -696,6 +713,7 @@ export class WebPanelPopupEdit extends Panel {
     this.hideSoundIconToggle.setPressed(settings.hideSoundIcon);
     this.hideNotificationBadgeToggle.setPressed(settings.hideNotificationBadge);
     this.periodicReloadMenuList.setValue(settings.periodicReload);
+    this.reloadOnUrlChangeToggle.setPressed(settings.reloadOnUrlChange);
     this.#updateZoomButtons(settings.zoom);
     this.zoom = settings.zoom;
 
@@ -982,6 +1000,17 @@ export class WebPanelPopupEdit extends Panel {
     ) {
       reverters.push(() =>
         this.onPeriodicReload(this.settings.uuid, this.settings.periodicReload),
+      );
+    }
+    if (
+      this.reloadOnUrlChangeToggle.getPressed() !==
+      this.settings.reloadOnUrlChange
+    ) {
+      reverters.push(() =>
+        this.onReloadOnUrlChange(
+          this.settings.uuid,
+          this.settings.reloadOnUrlChange,
+        ),
       );
     }
     if (this.zoom !== this.settings.zoom) {
