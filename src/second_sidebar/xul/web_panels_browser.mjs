@@ -306,10 +306,21 @@ export class WebPanelsBrowser extends Browser {
       }),
     );
     tab.uuid = webPanelSettings.uuid;
+    // Web panels must only be unloaded through our own explicit unload flow
+    // (see WebPanelController#unload). Firefox's automatic tab unloader can
+    // otherwise silently discard one under memory pressure - even while
+    // it's playing audio - leaving the sidebar unresponsive when the user
+    // comes back to it.
+    tab.setUndiscardable(true);
+    console.log(`Web panel ${webPanelSettings.uuid}: marked undiscardable`);
     tab.linkedBrowser.addProgressListener(progressListener);
 
-    // We need to add progress listener when loading unloaded tab
+    // We need to add progress listener when loading unloaded tab. This also
+    // fires again if Firefox ever discards and later restores this tab's
+    // browser despite setUndiscardable(true) above (e.g. an older Firefox/Zen
+    // build that doesn't honor it) - the log line makes that visible.
     tab.addTabBrowserInsertedListener(() => {
+      console.log(`Web panel ${webPanelSettings.uuid}: browser (re)inserted`);
       tab.linkedBrowser.addProgressListener(progressListener);
     });
 

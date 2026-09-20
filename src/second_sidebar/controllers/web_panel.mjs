@@ -386,10 +386,16 @@ export class WebPanelController {
       this.#settings,
       this.#progressListener,
     );
+    this.#log("tab created");
     this.#tab.addTabCloseListener(() => this.unload(false));
     this.#tab.addTabAttrModifiedListener(
       (soundplaying, muted, image, busy, progress, label) => {
-        if (soundplaying || muted) this.updateSoundIcon();
+        if (soundplaying || muted) {
+          this.updateSoundIcon();
+          this.#log(
+            `sound state changed: playing=${this.#tab.getAttributeBool("soundplaying")}, muted=${this.#tab.getAttributeBool("muted")}`,
+          );
+        }
         if (image || busy || progress) this.updateFavicon();
         if (label) this.updateTitle();
       },
@@ -408,6 +414,7 @@ export class WebPanelController {
    * @param {boolean} force
    */
   unload(force = true) {
+    this.#log(`unloading (force=${force})`);
     this.#stopTimer();
     const activeWebPanelController =
       SidebarControllers.webPanelsController.getActive();
@@ -416,7 +423,7 @@ export class WebPanelController {
     }
 
     if (this.#tab && force) {
-      SidebarElements.webPanelsBrowser.removeWebPanelTab(this.#tab);
+      this.#removeTab();
     }
 
     this.#button
@@ -905,9 +912,26 @@ export class WebPanelController {
   remove() {
     this.#stopTimer();
     if (this.#tab) {
-      SidebarElements.webPanelsBrowser.removeWebPanelTab(this.#tab);
+      this.#removeTab();
     }
     this.#button.remove();
+  }
+
+  /**
+   * Removing the underlying tab can throw (e.g. a Gecko internal reformats
+   * the hidden panel window's urlbar during permitUnload and hits a null
+   * editor there). Swallow that here rather than in the two call sites so
+   * our own cleanup - resetting #tab, the button state, removing the
+   * button - always runs and we never keep tracking a panel as "loaded"
+   * when its tab removal failed.
+   */
+  #removeTab() {
+    try {
+      SidebarElements.webPanelsBrowser.removeWebPanelTab(this.#tab);
+      this.#log("tab removed");
+    } catch (error) {
+      console.error(`Web panel ${this.getUUID()}: failed to remove tab`, error);
+    }
   }
 
   /**

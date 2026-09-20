@@ -3,6 +3,7 @@ export class UrlbarInputPatcher {
     console.log("Patching #urlbar-input...");
     this.#defineLazyGetter();
     this.#patchTabSwitchFocusChange();
+    this.#patchValueFormatterUpdate();
     this.#suppressValueFormatterErrors();
     console.log("#urlbar-input was patched");
   }
@@ -26,13 +27,50 @@ export class UrlbarInputPatcher {
     };
   }
 
+  /**
+   * The hidden urlbar's editor is always null (see #defineLazyGetter), but
+   * UrlbarValueFormatter.update() still dereferences it and throws whenever
+   * something reformats the address bar here. permitUnload does exactly
+   * that *synchronously inside* gBrowser.removeTab() (tab close/unload), so
+   * the uncaught throw aborts the removal partway: our own cleanup never
+   * runs and the underlying tab (and page) is left alive in the background.
+   * Replacing update() with a no-op removes the crash at its source instead
+   * of merely hiding the resulting error.
+   *
+   * gURLBar.valueFormatter doesn't exist yet when patch() runs (it fires on
+   * browser-window-before-show, before Firefox creates gURLBar), so retry
+   * until it does.
+   */
+  static #patchValueFormatterUpdate() {
+    const childWindow = window[1];
+    let attempts = 0;
+    const tryPatch = () => {
+      attempts++;
+      if (childWindow.closed) {
+        console.log(
+          `UrlbarValueFormatter patch abandoned after ${attempts} attempt(s): hidden window closed`,
+        );
+        return;
+      }
+      const valueFormatter = childWindow.gURLBar?.valueFormatter;
+      if (typeof valueFormatter?.update !== "function") {
+        setTimeout(tryPatch, 50);
+        return;
+      }
+      valueFormatter.update = async () => {};
+      console.log(
+        `UrlbarValueFormatter.update patched to a no-op after ${attempts} attempt(s)`,
+      );
+    };
+    tryPatch();
+  }
+
   static #suppressValueFormatterErrors() {
     const childWindow = window[1];
-    // UrlbarValueFormatter's internals are private class fields, so they
-    // can't be guarded from outside. permitUnload (tab close) can still
-    // reach it and dereference the hidden urlbar's always-null editor
-    // (see #defineLazyGetter). There is no visible urlbar to format here,
-    // so just swallow that specific benign error.
+    // Belt-and-suspenders fallback for the same underlying issue as
+    // #patchValueFormatterUpdate, in case some other path still reaches
+    // UrlbarValueFormatter (e.g. before that patch takes effect). Swallow
+    // just that specific benign error rather than every error.
     const isValueFormatterError = (error) =>
       error?.fileName?.includes("UrlbarValueFormatter.sys.mjs") ||
       error?.stack?.includes("UrlbarValueFormatter.sys.mjs");
