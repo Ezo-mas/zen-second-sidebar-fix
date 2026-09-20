@@ -1,3 +1,4 @@
+import { Logger } from "../utils/logger.mjs";
 import { WindowManagerWrapper } from "../wrappers/window_manager.mjs";
 import { WindowWatcherWrapper } from "../wrappers/window_watcher.mjs";
 import { WindowWrapper } from "../wrappers/window.mjs";
@@ -13,6 +14,8 @@ export const WebPanelEvents = {
   EDIT_WEB_PANEL_LOAD_ON_STARTUP: "edit_web_panel_load_on_startup",
   EDIT_WEB_PANEL_LOAD_LAST_URL: "edit_web_panel_load_last_url",
   EDIT_WEB_PANEL_UNLOAD_ON_CLOSE: "edit_web_panel_unload_on_close",
+  EDIT_WEB_PANEL_UNLOAD_AFTER_INACTIVITY:
+    "edit_web_panel_unload_after_inactivity",
   EDIT_WEB_PANEL_HIDE_TOOLBAR: "edit_web_panel_hide_toolbar",
   EDIT_WEB_PANEL_HIDE_SOUND_ICON: "edit_web_panel_hide_sound_icon",
   EDIT_WEB_PANEL_HIDE_NOTIFICATION_BADGE:
@@ -103,7 +106,7 @@ export const sendEvents = (type, detail = {}) => {
  */
 export const listenEvent = (type, callback) => {
   new WindowWrapper().addEventListener(type, (event) => {
-    console.log(`Got event ${event.type}:`, event.detail);
+    Logger.debug(`Got event ${event.type}:`, event.detail);
     callback(event);
   });
 };

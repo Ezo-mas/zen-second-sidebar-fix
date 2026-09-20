@@ -16,9 +16,7 @@ export class WebPanelState {
    * @returns {WebPanelState}
    */
   static fromObject(object) {
-    return new WebPanelState(object.uuid, {
-      lastUrl: object.lastUrl,
-    });
+    return new WebPanelState(object.uuid, object);
   }
 
   /**
@@ -26,9 +24,6 @@ export class WebPanelState {
    * @returns {object}
    */
   toObject() {
-    return {
-      uuid: this.uuid,
-      lastUrl: this.lastUrl,
-    };
+    return { ...this };
   }
 }

@@ -1,3 +1,14 @@
+// Resolved relative to this module's own URL (whatever chrome:// origin the
+// active userChrome loader actually served it from) rather than hardcoding
+// a specific loader's alias (e.g. fx-autoconfig's chrome://userscripts/...),
+// so the icons resolve under any loader.
+const SIDEBAR_LEFT_ICON = new URL("../icons/sidebar-left.svg", import.meta.url)
+  .href;
+const SIDEBAR_RIGHT_ICON = new URL(
+  "../icons/sidebar-right.svg",
+  import.meta.url,
+).href;
+
 export const SIDEBAR_MAIN_CSS = `
   #sb2-main {
     display: flex;
@@ -287,7 +298,7 @@ export const SIDEBAR_MAIN_CSS = `
     }
 
     #sb2-collapse-button {
-      list-style-image: url("chrome://userscripts/content/second_sidebar/icons/sidebar-left.svg");
+      list-style-image: url("${SIDEBAR_LEFT_ICON}");
     }
   }
 
@@ -297,7 +308,7 @@ export const SIDEBAR_MAIN_CSS = `
     }
 
     #sb2-collapse-button {
-      list-style-image: url("chrome://userscripts/content/second_sidebar/icons/sidebar-right.svg");
+      list-style-image: url("${SIDEBAR_RIGHT_ICON}");
     }
   }
 

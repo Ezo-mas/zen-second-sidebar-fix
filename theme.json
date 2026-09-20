@@ -1,0 +1,13 @@
+{
+  "id": "zen-second-sidebar",
+  "name": "Second Sidebar",
+  "description": "Adds a second sidebar with web panels to Firefox and Zen Browser, like Vivaldi/Edge/Floorp.",
+  "homepage": "https://github.com/sinazadeh/zen-second-sidebar",
+  "scripts": {
+    "src": {
+      "second_sidebar.uc.mjs": {
+        "include": ["chrome://browser/content/browser.xhtml*"]
+      }
+    }
+  }
+}

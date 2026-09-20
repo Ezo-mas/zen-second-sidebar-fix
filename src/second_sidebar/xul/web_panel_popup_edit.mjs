@@ -89,6 +89,8 @@ export class WebPanelPopupEdit extends Panel {
     this.loadOnStartupToggle = new Toggle();
     this.loadLastUrlToggle = new Toggle();
     this.unloadOnCloseToggle = new Toggle();
+    this.unloadAfterInactivityMenuList =
+      this.#createUnloadAfterInactivityMenuList();
     this.shortcutInput = createInput({
       placeholder: "Click here and press keys...",
     });
@@ -301,6 +303,26 @@ export class WebPanelPopupEdit extends Panel {
     return menuList;
   }
 
+  /**
+   * Unloading discards page state (scroll position, form input, playback
+   * position, etc), so unlike periodic reload this only offers minute-scale
+   * options - there's no "5 seconds" equivalent that would make sense here.
+   *
+   * @returns {MenuList}
+   */
+  #createUnloadAfterInactivityMenuList() {
+    const menuList = createMenuList();
+    menuList.appendItem("Never", 0);
+    menuList.appendItem("5 minutes", 5 * MINUTE);
+    menuList.appendItem("10 minutes", 10 * MINUTE);
+    menuList.appendItem("15 minutes", 15 * MINUTE);
+    menuList.appendItem("30 minutes", 30 * MINUTE);
+    menuList.appendItem("60 minutes", 60 * MINUTE);
+    menuList.appendItem("2 hours", 120 * MINUTE);
+    menuList.appendItem("4 hours", 240 * MINUTE);
+    return menuList;
+  }
+
   #compose() {
     this.appendChildren(
       new PanelMultiView().appendChildren(
@@ -373,6 +395,11 @@ export class WebPanelPopupEdit extends Panel {
               this.unloadOnCloseToggle,
             ),
             new ToolbarSeparator(),
+            createPopupGroup(
+              "Unload after inactivity",
+              this.unloadAfterInactivityMenuList,
+            ),
+            new ToolbarSeparator(),
             createPopupGroup("Periodic reload", this.periodicReloadMenuList),
             new ToolbarSeparator(),
             createPopupGroup(
@@ -428,6 +455,7 @@ export class WebPanelPopupEdit extends Panel {
    * @param {function(string, boolean):void} callbacks.loadOnStartup
    * @param {function(string, boolean):void} callbacks.loadLastUrl
    * @param {function(string, boolean):void} callbacks.unloadOnClose
+   * @param {function(string, number):void} callbacks.unloadAfterInactivity
    * @param {function(string, string):void} callbacks.shortcut
    * @param {function(string, boolean):void} callbacks.hideToolbar
    * @param {function(string, boolean):void} callbacks.hideSoundIcon
@@ -457,6 +485,7 @@ export class WebPanelPopupEdit extends Panel {
     loadOnStartup,
     loadLastUrl,
     unloadOnClose,
+    unloadAfterInactivity,
     shortcut,
     hideToolbar,
     hideSoundIcon,
@@ -485,6 +514,7 @@ export class WebPanelPopupEdit extends Panel {
     this.onLoadOnStartupChange = loadOnStartup;
     this.onLoadLastUrlChange = loadLastUrl;
     this.onUnloadOnCloseChange = unloadOnClose;
+    this.onUnloadAfterInactivityChange = unloadAfterInactivity;
     this.onShortcutChange = shortcut;
     this.onHideToolbar = hideToolbar;
     this.onHideSoundIcon = hideSoundIcon;
@@ -572,6 +602,12 @@ export class WebPanelPopupEdit extends Panel {
     });
     this.unloadOnCloseToggle.addEventListener("toggle", () => {
       unloadOnClose(this.settings.uuid, this.unloadOnCloseToggle.getPressed());
+    });
+    this.unloadAfterInactivityMenuList.addEventListener("command", () => {
+      unloadAfterInactivity(
+        this.settings.uuid,
+        this.unloadAfterInactivityMenuList.getValue(),
+      );
     });
     this.shortcutInput.addEventListener("input", () => {
       shortcut(this.settings.uuid, this.shortcutInput.getValue());
@@ -708,6 +744,7 @@ export class WebPanelPopupEdit extends Panel {
     this.loadOnStartupToggle.setPressed(settings.loadOnStartup);
     this.loadLastUrlToggle.setPressed(settings.loadLastUrl);
     this.unloadOnCloseToggle.setPressed(settings.unloadOnClose);
+    this.unloadAfterInactivityMenuList.setValue(settings.unloadAfterInactivity);
     this.shortcutInput.setValue(settings.shortcut).removeAttribute("error");
     this.hideToolbarToggle.setPressed(settings.hideToolbar);
     this.hideSoundIconToggle.setPressed(settings.hideSoundIcon);
@@ -960,6 +997,17 @@ export class WebPanelPopupEdit extends Panel {
         this.onUnloadOnCloseChange(
           this.settings.uuid,
           this.settings.unloadOnClose,
+        ),
+      );
+    }
+    if (
+      parseInt(this.unloadAfterInactivityMenuList.getValue()) !==
+      this.settings.unloadAfterInactivity
+    ) {
+      reverters.push(() =>
+        this.onUnloadAfterInactivityChange(
+          this.settings.uuid,
+          this.settings.unloadAfterInactivity,
         ),
       );
     }

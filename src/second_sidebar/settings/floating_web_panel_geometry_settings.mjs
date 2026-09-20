@@ -69,20 +69,7 @@ export class FloatingWebPanelGeometrySettings {
    * @returns {object}
    */
   toObject() {
-    return {
-      anchor: this.anchor,
-      offsetXType: this.offsetXType,
-      offsetYType: this.offsetYType,
-      widthType: this.widthType,
-      heightType: this.heightType,
-      top: this.top,
-      left: this.left,
-      right: this.right,
-      bottom: this.bottom,
-      width: this.width,
-      height: this.height,
-      margin: this.margin,
-    };
+    return { ...this };
   }
 
   /**

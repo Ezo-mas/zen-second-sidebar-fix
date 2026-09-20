@@ -21,6 +21,7 @@ export class WebPanelSettings {
    * @param {boolean} params.loadLastUrl
    * @param {boolean} params.loadOnStartup
    * @param {boolean} params.unloadOnClose
+   * @param {number} params.unloadAfterInactivity
    * @param {boolean} params.hideToolbar
    * @param {string} params.userContextId
    * @param {number} params.periodicReload
@@ -51,6 +52,7 @@ export class WebPanelSettings {
       loadOnStartup = true,
       loadLastUrl = false,
       unloadOnClose = false,
+      unloadAfterInactivity = 0,
       hideToolbar = false,
       userContextId = ScriptSecurityManagerWrapper.DEFAULT_USER_CONTEXT_ID,
       periodicReload = 0,
@@ -81,6 +83,7 @@ export class WebPanelSettings {
     this.loadOnStartup = loadOnStartup;
     this.loadLastUrl = loadLastUrl;
     this.unloadOnClose = unloadOnClose;
+    this.unloadAfterInactivity = unloadAfterInactivity;
     this.hideToolbar = hideToolbar;
     this.userContextId = userContextId;
     this.periodicReload = periodicReload;
@@ -109,25 +112,12 @@ export class WebPanelSettings {
       object.uuid,
       object.url,
       {
-        dynamicTitle: object.dynamicTitle,
-        title: object.title,
-        dynamicFavicon: object.dynamicFavicon,
-        faviconURL: object.faviconURL,
-        pinned: object.pinned,
-        alwaysOnTop: object.alwaysOnTop,
-        mobile: object.mobile,
-        zoom: object.zoom,
-        loadOnStartup: object.loadOnStartup,
-        loadLastUrl: object.loadLastUrl,
-        unloadOnClose: object.unloadOnClose,
-        hideToolbar: object.hideToolbar,
-        userContextId: object.userContextId,
-        periodicReload: object.periodicReload,
-        reloadOnUrlChange: object.reloadOnUrlChange,
-        hideSoundIcon: object.hideSoundIcon,
-        hideNotificationBadge: object.hideNotificationBadge,
-        selectorEnabled: object.selectorEnabled,
-        selector: object.selector,
+        // Spreading `object` covers every plain field (and quietly defaults
+        // any the object is missing, e.g. from an older save, via the
+        // constructor's own destructuring defaults above). Only the nested
+        // geometry settings need special handling, since they must become
+        // real instances rather than the plain objects stored on disk.
+        ...object,
         floatingGeometry: FloatingWebPanelGeometrySettings.fromObject(
           sidebarPosition,
           defaultFloatingOffsetCSS,
@@ -136,8 +126,6 @@ export class WebPanelSettings {
         pinnedGeometry: PinnedWebPanelGeometrySettings.fromObject(
           object.pinnedGeometry,
         ),
-        temporary: object.temporary,
-        shortcut: object.shortcut,
       },
     );
   }
@@ -148,31 +136,11 @@ export class WebPanelSettings {
    */
   toObject() {
     return {
-      uuid: this.uuid,
-      url: this.url,
-      dynamicTitle: this.dynamicTitle,
-      title: this.title,
-      dynamicFavicon: this.dynamicFavicon,
-      faviconURL: this.faviconURL,
-      pinned: this.pinned,
-      alwaysOnTop: this.alwaysOnTop,
-      mobile: this.mobile,
-      zoom: this.zoom,
-      loadOnStartup: this.loadOnStartup,
-      loadLastUrl: this.loadLastUrl,
-      unloadOnClose: this.unloadOnClose,
-      hideToolbar: this.hideToolbar,
-      userContextId: this.userContextId,
-      periodicReload: this.periodicReload,
-      reloadOnUrlChange: this.reloadOnUrlChange,
-      hideSoundIcon: this.hideSoundIcon,
-      hideNotificationBadge: this.hideNotificationBadge,
-      selectorEnabled: this.selectorEnabled,
-      selector: this.selector,
+      // See fromObject: every plain field round-trips via the spread, only
+      // the nested geometry settings need converting to plain objects.
+      ...this,
       floatingGeometry: this.floatingGeometry.toObject(),
       pinnedGeometry: this.pinnedGeometry.toObject(),
-      temporary: this.temporary,
-      shortcut: this.shortcut,
     };
   }
 }

@@ -1,6 +1,7 @@
 import { AppConstantsWrapper } from "../wrappers/app_constants.mjs";
 import { Browser } from "./base/browser.mjs";
 import { BrowserCommandsWrapper } from "../wrappers/browser_commands.mjs";
+import { Logger } from "../utils/logger.mjs";
 import { ObserversWrapper } from "../wrappers/observers.mjs";
 import { PopupNotificationsPatcher } from "../patchers/popup_notifications_patcher.mjs";
 import { ScriptSecurityManagerWrapper } from "../wrappers/script_security_manager.mjs";
@@ -312,7 +313,17 @@ export class WebPanelsBrowser extends Browser {
     // it's playing audio - leaving the sidebar unresponsive when the user
     // comes back to it.
     tab.setUndiscardable(true);
-    console.log(`Web panel ${webPanelSettings.uuid}: marked undiscardable`);
+    if (!tab.undiscardable) {
+      // Not fatal - the panel still works - but the memory-pressure
+      // unloader can now target it. Surfacing this unconditionally (not
+      // gated behind Logger.debug) since it means this Firefox/Zen build
+      // dropped or renamed the property this fix depends on.
+      console.warn(
+        `Web panel ${webPanelSettings.uuid}: tab.undiscardable did not stick; ` +
+          "this panel is no longer protected from Firefox's automatic tab unloader",
+      );
+    }
+    Logger.debug(`Web panel ${webPanelSettings.uuid}: marked undiscardable`);
     tab.linkedBrowser.addProgressListener(progressListener);
 
     // We need to add progress listener when loading unloaded tab. This also
@@ -320,7 +331,7 @@ export class WebPanelsBrowser extends Browser {
     // browser despite setUndiscardable(true) above (e.g. an older Firefox/Zen
     // build that doesn't honor it) - the log line makes that visible.
     tab.addTabBrowserInsertedListener(() => {
-      console.log(`Web panel ${webPanelSettings.uuid}: browser (re)inserted`);
+      Logger.debug(`Web panel ${webPanelSettings.uuid}: browser (re)inserted`);
       tab.linkedBrowser.addProgressListener(progressListener);
     });
 

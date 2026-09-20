@@ -6,6 +6,7 @@ import {
   createPopupRow,
   createPopupSet,
   createSaveButton,
+  createSubviewButton,
   createSubviewIconicButton,
 } from "../utils/xul.mjs";
 
@@ -80,6 +81,8 @@ export class SidebarMainPopupSettings extends Panel {
     this.hideSidebarAnimatedToggle = new Toggle();
     this.hideToolbarAnimatedToggle = new Toggle();
     this.enableSidebarBoxHintToggle = new Toggle();
+    this.exportSettingsButton = createSubviewButton("Export Settings...");
+    this.importSettingsButton = createSubviewButton("Import Settings...");
     this.saveButton = createSaveButton();
     this.cancelButton = createCancelButton();
     this.discardConfirmation = new PopupDiscardConfirmation({
@@ -343,6 +346,11 @@ export class SidebarMainPopupSettings extends Panel {
               this.hideToolbarAnimatedToggle,
             ),
           ]),
+          createPopupSet("Backup", [
+            createPopupRow(this.exportSettingsButton),
+            new ToolbarSeparator(),
+            createPopupRow(this.importSettingsButton),
+          ]),
         ),
         new PopupFooter().appendChildren(this.cancelButton, this.saveButton),
         this.discardConfirmation,
@@ -511,6 +519,29 @@ export class SidebarMainPopupSettings extends Panel {
         this.#endEditSession();
         callback();
       }
+    });
+  }
+
+  /**
+   * Backup is a standalone action, not part of this popup's edit session -
+   * it doesn't touch any of the toggles/menus above, so it isn't gated by
+   * Save/Cancel the way the rest of this popup is.
+   *
+   * @param {function():void} callback
+   */
+  listenExportSettingsButtonClick(callback) {
+    this.exportSettingsButton.addEventListener("click", (event) => {
+      if (isLeftMouseButton(event)) callback();
+    });
+  }
+
+  /**
+   *
+   * @param {function():void} callback
+   */
+  listenImportSettingsButtonClick(callback) {
+    this.importSettingsButton.addEventListener("click", (event) => {
+      if (isLeftMouseButton(event)) callback();
     });
   }
 

@@ -3,11 +3,13 @@
 ## Project and runtime
 
 Second Sidebar is a privileged Firefox and Zen Browser userChrome.js script loaded
-through fx-autoconfig (or compatible script loader). It adds a second sidebar and
-web panels to the browser UI. This repository is adapted for **Zen Browser** while
-maintaining compatibility with standard Firefox. It is not a WebExtension or a
-Node.js/web application: there is no manifest, bundler, development server, or
-build step. Deploy the contents of `src/` as-is.
+through fx-autoconfig, [Sine](https://github.com/CosmoCreeper/Sine) (via the
+`theme.json` manifest at the repo root), or a compatible script loader. It adds
+a second sidebar and web panels to the browser UI. This repository is adapted
+for **Zen Browser** while maintaining compatibility with standard Firefox. It
+is not a WebExtension or a Node.js/web application: there is no bundler,
+development server, or build step. Deploy the contents of `src/` as-is (for
+Sine, `theme.json` does this automatically - see "Loader portability" below).
 
 Read `README.md` for features and installation, and the relevant implementation
 before changing behavior. Follow applicable user-level agent instructions;
@@ -64,6 +66,35 @@ All paths below are relative to `src/second_sidebar/`, except the entry point.
   Preserve theme-token fallbacks and affected `browser.nova.enabled` rules.
 - Update the README when user-visible features or installation steps change.
   Keep edits focused; avoid unrelated formatting or framework/toolchain changes.
+- Use `Logger.debug` (`utils/logger.mjs`) for verbose, per-action logging
+  (tab lifecycle, per-setting change events, timer state) - it's gated
+  behind the `second-sidebar.debug-logging` pref so normal use doesn't spam
+  the Browser Console. Reserve plain `console.log` for one-time
+  startup/lifecycle announcements (e.g. "X was patched", "Loading Y..."),
+  and always use `console.error`/`console.warn` directly for real problems -
+  never gate those behind the debug pref.
+- Use `safeCall` (`utils/errors.mjs`) to isolate a call into a Firefox/Gecko
+  internal that's known (or suspected) to throw unpredictably, so the throw
+  can't corrupt this addon's own state or interrupt an event handler
+  partway through. See `WebPanelController#removeTab` for the reference
+  usage; the underlying issue is documented in `urlbar_input_patcher.mjs`.
+- For a new "call one setter, maybe with a small fixed follow-up" web panel
+  setting, wire it in `web_panels.mjs` via `#bindSimpleSetting` (or
+  `#bindGeometrySetting` for floating-geometry fields, `#bindSimpleAction`
+  for no-argument actions) rather than a bespoke `listenEvent` block.
+  Settings with real branching logic (different values calling different
+  methods, debounced timeouts, reload-if-changed checks) stay hand-written
+  alongside the bound ones in `#setupListeners`.
+- Settings classes that are a flat bag of primitive fields (`SidebarSettings`,
+  `WebPanelState`, `FloatingWebPanelGeometrySettings`) implement
+  `fromObject`/`toObject` by spreading the source object/instance rather
+  than listing every field three times; only override the fields that need
+  special handling (nested settings objects, computed defaults). Classes
+  with those - `WebPanelSettings` (nested `floatingGeometry`/
+  `pinnedGeometry`) and the collection wrappers (`WebPanelsSettings`,
+  `WebPanelsState`) - use spread for their flat fields too but keep the
+  nested/collection parts explicit; don't force a fully generic schema over
+  them.
 
 ## Changing settings
 
@@ -74,19 +105,83 @@ Follow an existing setting through these files under `src/second_sidebar/`:
   receiving controller → `settings/sidebar_settings.mjs`.
 - Panel editing: `xul/web_panel_popup_edit.mjs` →
   `controllers/web_panel_edit.mjs` → `controllers/events.mjs` →
-  `controllers/web_panels.mjs` / `controllers/web_panel.mjs` →
-  `settings/web_panel_settings.mjs`. Also check the new-panel popup/controller
-  when the setting should be available during creation.
+  `controllers/web_panels.mjs` (bind it with `#bindSimpleSetting` /
+  `#bindGeometrySetting` / `#bindSimpleAction` unless it needs real branching
+  logic) / `controllers/web_panel.mjs` → `settings/web_panel_settings.mjs`.
+  Also check the new-panel popup/controller when the setting should be
+  available during creation.
 
 Both settings dialogs apply changes live. Their Cancel handlers only close the
 popup; Save persists the current settings. Do not assume Cancel restores the
 previous values when extending these flows.
 
+Settings export/import (sidebar settings popup → `sidebar_main_settings.mjs`)
+writes a single JSON file: `{ version, exportedAt, sidebarSettings, webPanels }`
+(state such as `lastUrl` is deliberately excluded - see above). Import writes
+straight to the same storage `SidebarSettings`/`WebPanelsSettings.save()`
+already use rather than hot-applying live, since a wholesale replacement can
+add/remove entire panels and containers at once; a restart picks it up like
+any fresh window. Bump `EXPORT_VERSION` in that file only for a breaking
+shape change (a field renamed/repurposed) - a new optional field doesn't need
+it, since the settings classes' own constructor defaults already backfill it
+for older exports.
+
 ## Invariants and sensitive areas
 
+- **Loader portability (fx-autoconfig vs Sine)**: this addon's own files are
+  served from different chrome:// origins depending on the loader
+  (`chrome://userscripts/content/...` under fx-autoconfig,
+  `chrome://sine/content/<mod-id>/...` under Sine). Never hardcode one
+  loader's origin when referencing this addon's own assets:
+  - Module-to-module imports already use relative `./`/`../` paths - keep it
+    that way; never import a sibling module via an absolute `chrome://` URL.
+  - To reference a sibling asset (an icon, etc.) from CSS or elsewhere,
+    resolve it from the current module's own URL with
+    `new URL("../relative/path", import.meta.url).href` (see
+    `css/sidebar_main.mjs`), not a hardcoded `chrome://` prefix.
+  - To resolve a filesystem path (e.g. for `IOUtils`), use
+    `DirectoryServiceWrapper.profileChromeDir` (`wrappers/directory_service.mjs`,
+    backed by Gecko's "UChrm" directory-service key) instead of resolving a
+    loader-registered chrome:// alias - it works under any loader.
+  - `utils/files.mjs`'s `writeFile()` still has to return a URL its three
+    `patchers/*.mjs` callers can `import()` (they write a patched copy of a
+    Firefox internal module, then dynamically import it back in). It tries
+    fx-autoconfig's `chrome://userchrome/content/` alias first (verified via
+    `ChromeRegistry.convertChromeURL`, not just assumed), and falls back to a
+    plain `file://` URL via `DirectoryServiceWrapper.fileURIFromPath()` when
+    that alias isn't registered. Keep that fallback if you touch this file -
+    it's the difference between those three patchers working under Sine or not.
+- **`theme.json`** (repo root) is this fork's Sine mod manifest. Its `scripts`
+  field deliberately points at `src/second_sidebar.uc.mjs`'s real, nested
+  path rather than assuming a flattened repo - see "Why `src/` stays" below.
+  Only the entry point needs listing there; everything it imports is resolved
+  by the JS module loader itself, not by Sine's own script registry. Its
+  `include` pattern scopes loading to `browser.xhtml` (matching what
+  fx-autoconfig already restricts `.uc.mjs` loading to); dropping it would
+  make Sine dynamically import this script into every chrome window,
+  including ones lacking `gBrowser`/the sidebar's expected DOM.
+- **Why `src/` stays**: flattening `src/second_sidebar.uc.mjs` and
+  `src/second_sidebar/` to the repo root would look tidier and match how
+  small single-file Sine mods are usually laid out, but this fork's `src/`
+  layout mirrors upstream's, which is what keeps `git merge upstream/master`
+  (see the sync playbook below) tractable across ~150 files. `theme.json` can
+  point into a nested path just fine, so don't flatten the repo "for
+  cleanliness" - that trades a cosmetic win for permanent merge friction.
+- **Double-injection guard**: `run()` in `second_sidebar.uc.mjs` sets a
+  `sb2-injected` class on `BrowserElements.root` before doing anything else,
+  and bails out if it's already set. This exists for
+  [#4](https://github.com/sinazadeh/zen-second-sidebar/issues/4): a profile
+  with this addon set up both the old way (copied into fx-autoconfig's
+  `chrome/JS/`) and the new way (installed as a Sine mod) could otherwise
+  have both loaders inject into the same window, producing duplicate
+  `#sb2-*` elements with colliding ids. Keep the class set synchronously,
+  before the first `await`, so two near-simultaneous invocations can't both
+  pass the check.
 - Preserve startup ordering: wait for `UC_API.Runtime.startupFinished()` or
-  `delayedStartupPromise`; skip `sb2-webpanels-window` and popup windows; load
-  settings/state before creating elements, controllers, and applying values.
+  `delayedStartupPromise` (fx-autoconfig) or the `browser-delayed-startup-finished`
+  observer fallback in `second_sidebar.uc.mjs` (Sine, which defines neither
+  global); skip `sb2-webpanels-window` and popup windows; load settings/state
+  before creating elements, controllers, and applying values.
 - Keep popup detection compatible with extension-created windows. A popup may
   expose `window.toolbar.visible === false` without listing `extrachrome` in its
   `chromehidden` attribute. Never inject `#sb2-wrapper` into these windows.
@@ -94,6 +189,22 @@ previous values when extending these flows.
   panels. Its startup observers, SessionStore handling, close commands, popup
   notifications, and URL-bar patches are part of the implementation.
   Validate changes to this code in a real browser instance.
+- Every web panel tab is created with `tab.setUndiscardable(true)`
+  (`xul/base/tab.mjs`) so Firefox's automatic memory-pressure tab unloader
+  can't silently discard one out from under `WebPanelController`'s own
+  `#tab` state - being playing-audio or selected only deprioritizes a tab
+  for that unloader, it doesn't exempt it, and that hidden window isn't
+  reliably recognized as "foreground" either. If a future Firefox/Zen build
+  drops or renames this property, `addWebPanelTab` logs a `console.warn`
+  (not gated behind `Logger.debug`) - don't silence that without addressing
+  the underlying exposure. Panels are only meant to unload through
+  `WebPanelController#unload`/`close()` (including its own
+  `unloadAfterInactivity` timer), never through Firefox's own unloader.
+- `WebPanelController#unload`/`#removeTab` wrap the actual
+  `gBrowser.removeTab()` call in `safeCall` because a Gecko-internal urlbar
+  reformat inside `permitUnload` can throw there (see the long comment in
+  `urlbar_input_patcher.mjs`); losing that wrapper reintroduces a bug where
+  a "closed" panel's tab silently stays alive in the background.
 - **Zen Browser chrome containment**: Zen wraps its tabbox and content inside
   `#zen-tabbox-wrapper`. `SidebarBoxArea` (`xul/sidebar_box_area.mjs`) calculates
   dimensions relative to `#zen-tabbox-wrapper` and reserves spacing using
@@ -143,7 +254,7 @@ Run the checks relevant to changed files:
 
 ```sh
 npx eslint .
-npx prettier --check "src/**/*.mjs" "*.mjs" "*.md" ".github/workflows/*.yml"
+npx prettier --check "src/**/*.mjs" "*.mjs" "*.md" "*.json" ".github/workflows/*.yml"
 git diff --check
 ```
 
@@ -153,11 +264,23 @@ Do not reformat unrelated files to clear an existing repository-wide failure.
 On PowerShell, `npm.cmd`/`npx.cmd` can be used if `.ps1` launchers are blocked.
 
 CI installs ESLint 9.7.0 and uploads SARIF using
-`@microsoft/eslint-formatter-sarif@3.1.0`; its lint step uses `continue-on-error`.
-Inspect lint output rather than treating a green workflow as proof of no errors.
-The Prettier workflow uses a dry run. Add legitimate Firefox/Zen globals to the
-existing ESLint globals list when needed, rather than broadly disabling rules.
-Node syntax checks and lint cannot validate privileged browser APIs or XUL UI.
+`@microsoft/eslint-formatter-sarif@3.1.0`. The lint step no longer uses
+`continue-on-error` (removed once the repo reached a clean baseline) - a
+lint error now fails the workflow, so don't reintroduce that flag as a way
+to land something that doesn't pass. The Prettier workflow uses a dry run
+via `creyD/prettier_action@v4.3`, which may pin a different Prettier minor
+version than what `npm install prettier@3` gives you locally; a newer local
+Prettier can flag large swaths of untouched, previously-clean files that
+CI's pinned version wouldn't. Treat a `prettier --check` failure spanning
+files you didn't touch as this version drift, not a real regression - per
+above, only reformat files this change actually edited. Add legitimate
+Firefox/Zen globals to the existing ESLint globals list when needed, rather
+than broadly disabling rules; note that VS Code's built-in JS language
+service checks JSDoc `@param`/global references independently of ESLint's
+globals list (it has its own, separate set of gaps - e.g. it doesn't know
+about `BrowsingContext` even though ESLint does), so a stray IDE hint isn't
+necessarily an ESLint config gap. Node syntax checks and lint cannot
+validate privileged browser APIs or XUL UI.
 
 A **Sync upstream** workflow (`.github/workflows/sync-upstream.yml`) runs every
 Monday at 09:00 UTC and opens a Pull Request whenever `aminought/firefox-second-sidebar`
@@ -177,6 +300,13 @@ Use a dedicated test profile with fx-autoconfig (or Zen's script loader):
    `dom.allow_scripts_to_close_windows` are set to `true` in `about:config`.
 4. Clear the startup cache (via `about:support` → **Clear startup cache...** or
    by deleting the `startupCache` directory inside the profile folder) and restart.
+
+For changes to `theme.json`, the startup fallback in `second_sidebar.uc.mjs`,
+or anything under "Loader portability" above, also install via Sine on a
+separate test profile (add the repo as `<owner>/<repo>/tree/master` - the
+explicit branch matters, see README) rather than assuming the fx-autoconfig
+path alone covers it; the two loaders serve this addon's files from different
+chrome:// origins.
 
 Select manual scenarios according to the change:
 
@@ -257,6 +387,14 @@ code paths that were also modified by the Zen port:
    - **Accept** any new upstream `@media -moz-pref("browser.nova.enabled")` blocks.
    - **Keep** both `#browser,` and `#zen-tabbox-wrapper {` in the `position: relative`
      rule at the bottom of the file.
+
+`theme.json`, `wrappers/directory_service.mjs`, and the loader-portability
+fixes described above are fork-only additions upstream doesn't have, so
+merges won't touch or conflict with them - but they also won't gain any
+upstream improvements automatically. If upstream ever changes how
+`css/sidebar_main.mjs` or `utils/files.mjs` resolve their own assets/paths,
+re-apply the loader-portability treatment on top of upstream's version
+rather than taking upstream's as-is.
 
 ### Zen compatibility checklist
 

@@ -157,13 +157,12 @@ export class WebPanelsController {
       }, timeout);
     });
 
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_TITLE, (event) => {
-      const { uuid, dynamicTitle, title } = event.detail;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setTitle(dynamicTitle, title);
-      webPanelController.updateTitle();
-    });
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_TITLE,
+      ["dynamicTitle", "title"],
+      "setTitle",
+      { onChanged: (webPanelController) => webPanelController.updateTitle() },
+    );
 
     listenEvent(WebPanelEvents.EDIT_WEB_PANEL_FAVICON_URL, (event) => {
       const { uuid, dynamicFavicon, faviconURL, timeout } = event.detail;
@@ -223,213 +222,115 @@ export class WebPanelsController {
       }
     });
 
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_ANCHOR, (event) => {
-      const uuid = event.detail.uuid;
-      const anchor = event.detail.anchor;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setAnchor(anchor);
-
-      if (webPanelController.isActive()) {
-        SidebarControllers.sidebarGeometry.calculateAndSetFloatingGeometry(
-          webPanelController,
-          {
-            forceUpdate: true,
-          },
-        );
-      }
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_OFFSET_X_TYPE, (event) => {
-      const uuid = event.detail.uuid;
-      const offsetXType = event.detail.offsetXType;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setOffsetXType(offsetXType);
-
-      if (webPanelController.isActive()) {
-        SidebarControllers.sidebarGeometry.calculateAndSetFloatingGeometry(
-          webPanelController,
-          {
-            forceUpdate: true,
-          },
-        );
-      }
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_OFFSET_Y_TYPE, (event) => {
-      const uuid = event.detail.uuid;
-      const offsetYType = event.detail.offsetYType;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setOffsetYType(offsetYType);
-
-      if (webPanelController.isActive()) {
-        SidebarControllers.sidebarGeometry.calculateAndSetFloatingGeometry(
-          webPanelController,
-          {
-            forceUpdate: true,
-          },
-        );
-      }
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_WIDTH_TYPE, (event) => {
-      const uuid = event.detail.uuid;
-      const widthType = event.detail.widthType;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setWidthType(widthType);
-
-      if (webPanelController.isActive()) {
-        SidebarControllers.sidebarGeometry.calculateAndSetFloatingGeometry(
-          webPanelController,
-          {
-            forceUpdate: true,
-          },
-        );
-      }
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_HEIGHT_TYPE, (event) => {
-      const uuid = event.detail.uuid;
-      const heightType = event.detail.heightType;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setHeightType(heightType);
-
-      if (webPanelController.isActive()) {
-        SidebarControllers.sidebarGeometry.calculateAndSetFloatingGeometry(
-          webPanelController,
-          {
-            forceUpdate: true,
-          },
-        );
-      }
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_USER_CONTEXT_ID, (event) => {
-      const uuid = event.detail.uuid;
-      const userContextId = event.detail.userContextId;
-      const webPanelController = this.get(uuid);
-      webPanelController.setUserContextId(userContextId);
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_ALWAYS_ON_TOP, (event) => {
-      const uuid = event.detail.uuid;
-      const alwaysOnTop = event.detail.alwaysOnTop;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setAlwaysOnTop(alwaysOnTop);
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_MOBILE, (event) => {
-      const uuid = event.detail.uuid;
-      const mobile = event.detail.mobile;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setMobile(mobile);
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_LOAD_ON_STARTUP, (event) => {
-      const uuid = event.detail.uuid;
-      const loadOnStartup = event.detail.loadOnStartup;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setLoadOnStartup(loadOnStartup);
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_LOAD_LAST_URL, (event) => {
-      const uuid = event.detail.uuid;
-      const loadLastUrl = event.detail.loadLastUrl;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setLoadLastUrl(loadLastUrl);
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_UNLOAD_ON_CLOSE, (event) => {
-      const uuid = event.detail.uuid;
-      const unloadOnClose = event.detail.unloadOnClose;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setUnloadOnClose(unloadOnClose);
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_SHORTCUT, (event) => {
-      const uuid = event.detail.uuid;
-      const shortcut = event.detail.shortcut;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setShortcut(shortcut);
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_HIDE_TOOLBAR, (event) => {
-      const uuid = event.detail.uuid;
-      const hideToolbar = event.detail.hideToolbar;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setHideToolbar(hideToolbar);
-      hideToolbar
-        ? SidebarControllers.sidebarController.collapseToolbar()
-        : SidebarControllers.sidebarController.uncollapseToolbar();
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_HIDE_SOUND_ICON, (event) => {
-      const uuid = event.detail.uuid;
-      const hideSoundIcon = event.detail.hideSoundIcon;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setHideSoundIcon(hideSoundIcon);
-    });
-
-    listenEvent(
-      WebPanelEvents.EDIT_WEB_PANEL_HIDE_NOTIFICATION_BADGE,
-      (event) => {
-        const uuid = event.detail.uuid;
-        const hideNotificationBadge = event.detail.hideNotificationBadge;
-
-        const webPanelController = this.get(uuid);
-        webPanelController.setHideNotificationBadge(hideNotificationBadge);
-      },
+    // The five floating-geometry settings below all follow the same shape:
+    // apply the setter, then recalculate on-screen geometry if the panel is
+    // currently visible.
+    this.#bindGeometrySetting(
+      WebPanelEvents.EDIT_WEB_PANEL_ANCHOR,
+      "anchor",
+      "setAnchor",
+    );
+    this.#bindGeometrySetting(
+      WebPanelEvents.EDIT_WEB_PANEL_OFFSET_X_TYPE,
+      "offsetXType",
+      "setOffsetXType",
+    );
+    this.#bindGeometrySetting(
+      WebPanelEvents.EDIT_WEB_PANEL_OFFSET_Y_TYPE,
+      "offsetYType",
+      "setOffsetYType",
+    );
+    this.#bindGeometrySetting(
+      WebPanelEvents.EDIT_WEB_PANEL_WIDTH_TYPE,
+      "widthType",
+      "setWidthType",
+    );
+    this.#bindGeometrySetting(
+      WebPanelEvents.EDIT_WEB_PANEL_HEIGHT_TYPE,
+      "heightType",
+      "setHeightType",
     );
 
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_PERIODIC_RELOAD, (event) => {
-      const uuid = event.detail.uuid;
-      const periodicReload = event.detail.periodicReload;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setPeriodicReload(periodicReload);
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_RELOAD_ON_URL_CHANGE, (event) => {
-      const uuid = event.detail.uuid;
-      const reloadOnUrlChange = event.detail.reloadOnUrlChange;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setReloadOnUrlChange(reloadOnUrlChange);
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_ZOOM_OUT, (event) => {
-      const uuid = event.detail.uuid;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.zoomOut();
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_ZOOM_IN, (event) => {
-      const uuid = event.detail.uuid;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.zoomIn();
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_ZOOM, (event) => {
-      const uuid = event.detail.uuid;
-      const value = event.detail.value;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setZoom(value);
-    });
+    // The settings below are each just "apply this one setter", optionally
+    // followed by a small fixed side effect (onChanged).
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_USER_CONTEXT_ID,
+      "userContextId",
+      "setUserContextId",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_ALWAYS_ON_TOP,
+      "alwaysOnTop",
+      "setAlwaysOnTop",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_MOBILE,
+      "mobile",
+      "setMobile",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_LOAD_ON_STARTUP,
+      "loadOnStartup",
+      "setLoadOnStartup",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_LOAD_LAST_URL,
+      "loadLastUrl",
+      "setLoadLastUrl",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_UNLOAD_ON_CLOSE,
+      "unloadOnClose",
+      "setUnloadOnClose",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_UNLOAD_AFTER_INACTIVITY,
+      "unloadAfterInactivity",
+      "setUnloadAfterInactivity",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_SHORTCUT,
+      "shortcut",
+      "setShortcut",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_HIDE_TOOLBAR,
+      "hideToolbar",
+      "setHideToolbar",
+      {
+        onChanged: (_webPanelController, { hideToolbar }) =>
+          hideToolbar
+            ? SidebarControllers.sidebarController.collapseToolbar()
+            : SidebarControllers.sidebarController.uncollapseToolbar(),
+      },
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_HIDE_SOUND_ICON,
+      "hideSoundIcon",
+      "setHideSoundIcon",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_HIDE_NOTIFICATION_BADGE,
+      "hideNotificationBadge",
+      "setHideNotificationBadge",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_PERIODIC_RELOAD,
+      "periodicReload",
+      "setPeriodicReload",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_RELOAD_ON_URL_CHANGE,
+      "reloadOnUrlChange",
+      "setReloadOnUrlChange",
+    );
+    this.#bindSimpleAction(WebPanelEvents.EDIT_WEB_PANEL_ZOOM_OUT, "zoomOut");
+    this.#bindSimpleAction(WebPanelEvents.EDIT_WEB_PANEL_ZOOM_IN, "zoomIn");
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_ZOOM,
+      "value",
+      "setZoom",
+    );
 
     listenEvent(WebPanelEvents.DELETE_WEB_PANEL, async (event) => {
       const uuid = event.detail.uuid;
@@ -440,6 +341,64 @@ export class WebPanelsController {
       }
       webPanelController.remove();
       this.delete(uuid);
+    });
+  }
+
+  /**
+   * Binds a WebPanelController setter to an edit event: apply the setter
+   * with the event's value(s), then run an optional follow-up. Covers the
+   * many settings that are just "call one setter", optionally followed by a
+   * small fixed side effect, so those don't each need a bespoke handler.
+   * Settings with real branching logic (different values triggering
+   * different methods, debounced timeouts, etc.) stay hand-written above.
+   *
+   * @param {string} event
+   * @param {string|Array<string>} valueKeys - event.detail key(s) passed to the setter, in order
+   * @param {string} setterName
+   * @param {object} params
+   * @param {function(WebPanelController, object):void} params.onChanged
+   */
+  #bindSimpleSetting(event, valueKeys, setterName, { onChanged } = {}) {
+    const keys = Array.isArray(valueKeys) ? valueKeys : [valueKeys];
+    listenEvent(event, (e) => {
+      const webPanelController = this.get(e.detail.uuid);
+      webPanelController[setterName](...keys.map((key) => e.detail[key]));
+      onChanged?.(webPanelController, e.detail);
+    });
+  }
+
+  /**
+   * Same shape as #bindSimpleSetting, for the floating-geometry settings
+   * that all also need the panel's on-screen geometry recalculated when
+   * it's currently visible.
+   *
+   * @param {string} event
+   * @param {string} valueKey
+   * @param {string} setterName
+   */
+  #bindGeometrySetting(event, valueKey, setterName) {
+    this.#bindSimpleSetting(event, valueKey, setterName, {
+      onChanged: (webPanelController) => {
+        if (webPanelController.isActive()) {
+          SidebarControllers.sidebarGeometry.calculateAndSetFloatingGeometry(
+            webPanelController,
+            { forceUpdate: true },
+          );
+        }
+      },
+    });
+  }
+
+  /**
+   * Binds a no-argument WebPanelController action (e.g. zoomIn/zoomOut) to
+   * an edit event that only carries the target uuid.
+   *
+   * @param {string} event
+   * @param {string} methodName
+   */
+  #bindSimpleAction(event, methodName) {
+    listenEvent(event, (e) => {
+      this.get(e.detail.uuid)[methodName]();
     });
   }
 

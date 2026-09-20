@@ -124,6 +124,12 @@ export class WebPanelEditController {
           unloadOnClose,
         });
       },
+      unloadAfterInactivity: (uuid, unloadAfterInactivity) => {
+        sendEvents(WebPanelEvents.EDIT_WEB_PANEL_UNLOAD_AFTER_INACTIVITY, {
+          uuid,
+          unloadAfterInactivity: Number(unloadAfterInactivity),
+        });
+      },
       shortcut: (uuid, shortcut) => {
         sendEvents(WebPanelEvents.EDIT_WEB_PANEL_SHORTCUT, {
           uuid,
