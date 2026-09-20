@@ -18,9 +18,15 @@ import { WindowWrapper } from "../wrappers/window.mjs";
 import { extractHostname } from "../utils/url.mjs";
 import { gCustomizeModeWrapper } from "../wrappers/g_customize_mode.mjs";
 
+const SAVE_DEBOUNCE_MS = 300;
+
 export class WebPanelsController {
   /**@type {string?} */
   #lastMainBrowserHostname = null;
+  /**@type {number?} */
+  #saveSettingsTimer = null;
+  /**@type {number?} */
+  #saveStateTimer = null;
 
   constructor() {
     /**@type {Map<string, WebPanelController>} */
@@ -711,7 +717,12 @@ export class WebPanelsController {
   }
 
   saveSettings() {
-    this.dumpSettings().save();
+    // Coalesce bursts of settings changes (drag/resize end, multiple edits) into one write.
+    clearTimeout(this.#saveSettingsTimer);
+    this.#saveSettingsTimer = setTimeout(
+      () => this.dumpSettings().save(),
+      SAVE_DEBOUNCE_MS,
+    );
   }
 
   dumpState() {
@@ -723,6 +734,11 @@ export class WebPanelsController {
   }
 
   saveState() {
-    this.dumpState().save();
+    // Coalesce state saves so multiple panels finishing navigation close together only write once.
+    clearTimeout(this.#saveStateTimer);
+    this.#saveStateTimer = setTimeout(
+      () => this.dumpState().save(),
+      SAVE_DEBOUNCE_MS,
+    );
   }
 }
