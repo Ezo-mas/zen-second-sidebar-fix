@@ -33,8 +33,20 @@ export class UrlbarInputPatcher {
     // reach it and dereference the hidden urlbar's always-null editor
     // (see #defineLazyGetter). There is no visible urlbar to format here,
     // so just swallow that specific benign error.
+    const isValueFormatterError = (error) =>
+      error?.fileName?.includes("UrlbarValueFormatter.sys.mjs") ||
+      error?.stack?.includes("UrlbarValueFormatter.sys.mjs");
+
     childWindow.addEventListener("error", (event) => {
-      if (event.filename?.includes("UrlbarValueFormatter.sys.mjs")) {
+      if (
+        event.filename?.includes("UrlbarValueFormatter.sys.mjs") ||
+        isValueFormatterError(event.error)
+      ) {
+        event.preventDefault();
+      }
+    });
+    childWindow.addEventListener("unhandledrejection", (event) => {
+      if (isValueFormatterError(event.reason)) {
         event.preventDefault();
       }
     });
