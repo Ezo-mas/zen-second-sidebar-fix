@@ -269,7 +269,7 @@ export class WebPanelsBrowser extends Browser {
       callback(WebPanelTab.fromTab(tab));
     });
   }
-  
+
   /**
    * Workaround for a Windows GPU-process bug: after this embedded window's
    * remote content becomes visible or its active tab changes, Gecko
