@@ -3,6 +3,7 @@ export class UrlbarInputPatcher {
     console.log("Patching #urlbar-input...");
     this.#defineLazyGetter();
     this.#patchTabSwitchFocusChange();
+    this.#patchValueFormatterUpdate();
     console.log("#urlbar-input was patched");
   }
 
@@ -23,5 +24,15 @@ export class UrlbarInputPatcher {
       if (!this.view) return;
       return afterTabSelectAndFocusChange.apply(this, args);
     };
+  }
+
+  static #patchValueFormatterUpdate() {
+    const valueFormatter = window[1].gURLBar?.valueFormatter;
+    if (typeof valueFormatter?.update !== "function") return;
+
+    // The hidden urlbar's editor is always null (see #defineLazyGetter), but
+    // formatting (e.g. triggered by tab close permitUnload checks) still
+    // dereferences it and throws. There is no visible urlbar to format here.
+    valueFormatter.update = async () => {};
   }
 }
