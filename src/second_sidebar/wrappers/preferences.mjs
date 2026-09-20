@@ -29,6 +29,14 @@ export class PreferencesWrapper {
   /**
    *
    * @param {string} pref
+   */
+  static clearUserPref(pref) {
+    return Services.prefs.clearUserPref(pref);
+  }
+
+  /**
+   *
+   * @param {string} pref
    * @returns {boolean}
    */
   static getBoolPref(pref) {

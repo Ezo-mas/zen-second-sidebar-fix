@@ -719,10 +719,11 @@ export class WebPanelsController {
   saveSettings() {
     // Coalesce bursts of settings changes (drag/resize end, multiple edits) into one write.
     clearTimeout(this.#saveSettingsTimer);
-    this.#saveSettingsTimer = setTimeout(
-      () => this.dumpSettings().save(),
-      SAVE_DEBOUNCE_MS,
-    );
+    this.#saveSettingsTimer = setTimeout(() => {
+      this.dumpSettings()
+        .save()
+        .catch((error) => console.error("Failed to save web panels:", error));
+    }, SAVE_DEBOUNCE_MS);
   }
 
   dumpState() {
@@ -736,9 +737,12 @@ export class WebPanelsController {
   saveState() {
     // Coalesce state saves so multiple panels finishing navigation close together only write once.
     clearTimeout(this.#saveStateTimer);
-    this.#saveStateTimer = setTimeout(
-      () => this.dumpState().save(),
-      SAVE_DEBOUNCE_MS,
-    );
+    this.#saveStateTimer = setTimeout(() => {
+      this.dumpState()
+        .save()
+        .catch((error) =>
+          console.error("Failed to save web panels state:", error),
+        );
+    }, SAVE_DEBOUNCE_MS);
   }
 }

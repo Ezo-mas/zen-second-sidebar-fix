@@ -19,6 +19,26 @@ export async function writeFile(relativePath, data) {
 /**
  *
  * @param {string} relativePath
+ * @returns {Promise<string>}
+ */
+export async function readFile(relativePath) {
+  const path = makePath(relativePath);
+  return await IOUtilsWrapper.readUTF8(path);
+}
+
+/**
+ *
+ * @param {string} relativePath
+ * @returns {Promise<boolean>}
+ */
+export async function fileExists(relativePath) {
+  const path = makePath(relativePath);
+  return await IOUtilsWrapper.exists(path);
+}
+
+/**
+ *
+ * @param {string} relativePath
  */
 export async function removeFile(relativePath) {
   const path = makePath(relativePath);

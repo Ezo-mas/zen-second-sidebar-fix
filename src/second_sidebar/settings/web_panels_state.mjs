@@ -1,7 +1,8 @@
-import { Settings } from "./settings.mjs";
+import { FileSettings } from "./settings.mjs";
 import { WebPanelState } from "./web_panel_state.mjs";
 
-const PREF = "second-sidebar.web-panels-state";
+const PATH = "second-sidebar-data/web-panels-state.json";
+const LEGACY_PREF = "second-sidebar.web-panels-state";
 
 export class WebPanelsState {
   /**
@@ -14,21 +15,21 @@ export class WebPanelsState {
 
   /**
    *
-   * @returns {WebPanelsState}
+   * @returns {Promise<WebPanelsState>}
    */
-  static load() {
-    const pref = Settings.load(PREF) ?? [];
+  static async load() {
+    const data = (await FileSettings.load(PATH, LEGACY_PREF)) ?? [];
 
     return new WebPanelsState(
-      pref.map((webPanelStatePref) =>
-        WebPanelState.fromObject(webPanelStatePref),
+      data.map((webPanelStateData) =>
+        WebPanelState.fromObject(webPanelStateData),
       ),
     );
   }
 
   save() {
-    Settings.save(
-      PREF,
+    return FileSettings.save(
+      PATH,
       this.webPanelsState.map((webPanelState) => webPanelState.toObject()),
     );
   }

@@ -14,10 +14,12 @@ import { SidebarInjector } from "./second_sidebar/sidebar_injector.mjs";
 const run = () => {
   if (BrowserElements.root.hasClass("sb2-webpanels-window")) return;
   ContextualIdentityServiceWrapper.ensureDataReady();
-  if (SidebarInjector.inject()) {
-    SidebarDecorator.decorate();
-    CustomizeModePatcher.patch();
-  }
+  SidebarInjector.inject().then((injected) => {
+    if (injected) {
+      SidebarDecorator.decorate();
+      CustomizeModePatcher.patch();
+    }
+  });
 };
 
 const runAfterStartup = () => {
