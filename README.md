@@ -1,3 +1,10 @@
+> [!NOTE]
+> This is a fork of [aminought/firefox-second-sidebar](https://github.com/aminought/firefox-second-sidebar), adapted for **Zen Browser** on top of Zen compatibility work from [Ezo-mas/zen-second-sidebar-fix](https://github.com/Ezo-mas/zen-second-sidebar-fix). Compared to upstream, this fork additionally provides:
+>
+> - Full Zen Browser layout support (vertical tabs, split view, workspaces, compact mode, and both sidebar sides) alongside standard Firefox.
+> - Web panel setting: `Reload when address changes` — reloads a web panel when the main browser's active tab is switched or navigated to a different site.
+> - Windows GPU compositing fix so web panels don't render as a blank frame when switching.
+
 A Firefox userChrome.js script that brings a second sidebar with web panels like in Vivaldi/Edge/Floorp but better.
 
 <img width="2200" height="2131" alt="promo-rounded" src="https://github.com/user-attachments/assets/020ee8cf-1f3d-4184-98fe-889be89d6145" />
@@ -35,7 +42,7 @@ https://github.com/user-attachments/assets/cd79d644-ca2c-4a30-ae8e-c265f41768b6
   - Title: `Dynamic` • `Set static title`
   - Favicon: `Dynamic` • `Set static favicon`
   - Position and size: `Mode (Floating / Pinned)` • `Always on top` • `Position anchor` • `Horizontal offset` • `Vertical offset` • `Width` • `Height`
-  - Loading: `Load into memory at startup` • `Restore last opened page` • `Unload from memory after closing` • `Periodic reload`
+  - Loading: `Load into memory at startup` • `Restore last opened page` • `Unload from memory after closing` • `Periodic reload` • `Reload when address changes`
   - Keyboard shortcut: `Set layout-independent shortcut to hide/show web panel`
   - CSS selector: `Enable` • `Set CSS selector`
   - Hide elements: `Hide toolbar` • `Hide sound icon` • `Hide notification badge`
