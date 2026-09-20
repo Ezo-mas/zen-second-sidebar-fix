@@ -1,5 +1,10 @@
 import { PreferencesWrapper } from "../wrappers/preferences.mjs";
-import { fileExists, readFile, writeFile } from "../utils/files.mjs";
+import {
+  fileExists,
+  migrateLegacyFile,
+  readFile,
+  writeFile,
+} from "../utils/files.mjs";
 
 export class Settings {
   /**
@@ -38,6 +43,8 @@ export class FileSettings {
    * @returns {Promise<Object | Array<Object> | null>}
    */
   static async load(path, legacyPref) {
+    await migrateLegacyFile(path);
+
     if (await fileExists(path)) {
       return JSON.parse(await readFile(path));
     }

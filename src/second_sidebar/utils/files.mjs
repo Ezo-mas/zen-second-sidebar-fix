@@ -61,6 +61,53 @@ function makeDataPath(relativePath) {
   return PathUtilsWrapper.join(rootParts.concat(relativePath.split("/")));
 }
 
+// Before the change above, persistent data resolved under fx-autoconfig's
+// chrome://userchrome/content/ alias (<profile>/chrome/resources/) instead
+// of the profile's chrome/ directory directly. Anyone updating across that
+// change has their existing data stranded at the old location - the addon
+// otherwise just sees no file there and starts over with nothing. A loader
+// that never registered that alias (e.g. a fresh Sine-only install) has
+// nothing to migrate, which is not an error.
+/**
+ *
+ * @param {string} relativePath
+ * @returns {string | null}
+ */
+function makeLegacyDataPath(relativePath) {
+  try {
+    const contentDir = ChromeRegistry.convertChromeURL(
+      "chrome://userchrome/content/",
+    );
+    const resourcePath = contentDir.QueryInterface(Ci.nsIFileURL).file.parent
+      .path;
+    const rootParts = PathUtilsWrapper.split(resourcePath);
+    return PathUtilsWrapper.join(rootParts.concat(relativePath.split("/")));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Moves a persistent-data file forward from its pre-7a5dc5d location if one
+ * exists there and nothing has been written to the current location yet.
+ * A no-op once the current location has a file, so this only ever runs
+ * once per profile.
+ *
+ * @param {string} relativePath
+ */
+export async function migrateLegacyFile(relativePath) {
+  if (await fileExists(relativePath)) {
+    return;
+  }
+  const legacyPath = makeLegacyDataPath(relativePath);
+  if (!legacyPath || !(await IOUtilsWrapper.exists(legacyPath))) {
+    return;
+  }
+  const data = await IOUtilsWrapper.readUTF8(legacyPath);
+  await writeFile(relativePath, data);
+  await IOUtilsWrapper.remove(legacyPath);
+}
+
 // A patched-module file (see patchers/*.mjs) is transient: written, then
 // immediately dynamically imported back in, then deleted - every browser
 // startup regenerates it, so unlike the persistent data above it doesn't
