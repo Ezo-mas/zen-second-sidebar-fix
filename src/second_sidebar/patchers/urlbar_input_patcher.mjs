@@ -3,7 +3,7 @@ export class UrlbarInputPatcher {
     console.log("Patching #urlbar-input...");
     this.#defineLazyGetter();
     this.#patchTabSwitchFocusChange();
-    this.#patchValueFormatterUpdate();
+    this.#suppressValueFormatterErrors();
     console.log("#urlbar-input was patched");
   }
 
@@ -26,13 +26,17 @@ export class UrlbarInputPatcher {
     };
   }
 
-  static #patchValueFormatterUpdate() {
-    const valueFormatter = window[1].gURLBar?.valueFormatter;
-    if (typeof valueFormatter?.update !== "function") return;
-
-    // The hidden urlbar's editor is always null (see #defineLazyGetter), but
-    // formatting (e.g. triggered by tab close permitUnload checks) still
-    // dereferences it and throws. There is no visible urlbar to format here.
-    valueFormatter.update = async () => {};
+  static #suppressValueFormatterErrors() {
+    const childWindow = window[1];
+    // UrlbarValueFormatter's internals are private class fields, so they
+    // can't be guarded from outside. permitUnload (tab close) can still
+    // reach it and dereference the hidden urlbar's always-null editor
+    // (see #defineLazyGetter). There is no visible urlbar to format here,
+    // so just swallow that specific benign error.
+    childWindow.addEventListener("error", (event) => {
+      if (event.filename?.includes("UrlbarValueFormatter.sys.mjs")) {
+        event.preventDefault();
+      }
+    });
   }
 }
