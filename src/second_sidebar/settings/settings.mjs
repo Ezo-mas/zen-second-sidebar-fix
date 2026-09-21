@@ -13,10 +13,15 @@ export class Settings {
    * @returns {Object | Array<Object> | null}
    */
   static load(pref) {
-    const value = PreferencesWrapper.prefHasUserValue(pref)
-      ? JSON.parse(PreferencesWrapper.getStringPref(pref))
-      : null;
-    return value;
+    if (!PreferencesWrapper.prefHasUserValue(pref)) {
+      return null;
+    }
+    try {
+      return JSON.parse(PreferencesWrapper.getStringPref(pref));
+    } catch (error) {
+      console.error(`Failed to parse pref "${pref}", using defaults:`, error);
+      return null;
+    }
   }
 
   /**
@@ -46,15 +51,28 @@ export class FileSettings {
     await migrateLegacyFile(path);
 
     if (await fileExists(path)) {
-      return JSON.parse(await readFile(path));
+      try {
+        return JSON.parse(await readFile(path));
+      } catch (error) {
+        console.error(`Failed to parse "${path}", using defaults:`, error);
+        return null;
+      }
     }
 
     // Migrate data written by older versions that stored it in a preference.
     if (PreferencesWrapper.prefHasUserValue(legacyPref)) {
-      const value = JSON.parse(PreferencesWrapper.getStringPref(legacyPref));
-      await FileSettings.save(path, value);
-      PreferencesWrapper.clearUserPref(legacyPref);
-      return value;
+      try {
+        const value = JSON.parse(PreferencesWrapper.getStringPref(legacyPref));
+        await FileSettings.save(path, value);
+        PreferencesWrapper.clearUserPref(legacyPref);
+        return value;
+      } catch (error) {
+        console.error(
+          `Failed to parse legacy pref "${legacyPref}", using defaults:`,
+          error,
+        );
+        return null;
+      }
     }
 
     return null;

@@ -4,7 +4,7 @@
   "description": "Adds a second sidebar with web panels to Firefox and Zen Browser.",
   "homepage": "https://github.com/sinazadeh/zen-second-sidebar-enhanced",
   "author": "sinazadeh",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "image": "https://github.com/user-attachments/assets/020ee8cf-1f3d-4184-98fe-889be89d6145",
   "tags": ["sidebar", "web-panels", "productivity"],
   "fork": ["zen"],
