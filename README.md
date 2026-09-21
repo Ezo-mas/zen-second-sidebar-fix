@@ -10,7 +10,7 @@
 > - [Sine](https://github.com/CosmoCreeper/Sine) mod support (`theme.json`) alongside fx-autoconfig, so the script can be installed without manually copying files.
 > - Windows GPU compositing fix so web panels don't render as a blank frame when switching.
 
-A Firefox userChrome.js script that brings a second sidebar with web panels like in Vivaldi/Edge/Floorp but better.
+A Zen userChrome.js script that brings a second sidebar with web panels like in Vivaldi/Edge/Floorp but better.
 
 <img width="2200" height="2131" alt="promo-rounded" src="https://github.com/user-attachments/assets/020ee8cf-1f3d-4184-98fe-889be89d6145" />
 
