@@ -42,10 +42,6 @@ Pick whichever loader you already use (or prefer) — both install the exact sam
 
 Use **Export settings** / **Import settings** (sidebar settings popup) to save or restore the sidebar and every web panel's settings as one JSON file. This covers configuration only, not per-panel state like the last-opened URL. Importing writes the file's settings to disk immediately; restart the browser afterward for the change to fully take effect.
 
-## Motivation
-
-I've tried various browsers, such as Vivaldi, Edge, Floorp, and Zen, and they all have one thing in common that I can't imagine using a browser without — the sidebar. Unfortunately, Firefox, which I feel most closely aligns with my needs in terms of spirit and functionality, has a rather unsatisfactory sidebar. Therefore, I decided to create another one myself, with blackjack and hookers!
-
 ## Demo
 
 https://github.com/user-attachments/assets/cd79d644-ca2c-4a30-ae8e-c265f41768b6
