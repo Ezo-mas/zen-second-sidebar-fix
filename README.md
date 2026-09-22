@@ -19,8 +19,7 @@ A Zen userChrome.js script that brings a second sidebar with web panels like in 
 Pick whichever loader you already use (or prefer) — both install the exact same script.
 
 > [!WARNING]
-> **fx-autoconfig and Sine share one `config.js` per browser _installation_, not per profile.** Both ultimately work by pointing Firefox's `general.config.filename` at a single bootstrap file inside the browser's install directory (e.g. `C:\Program Files\Zen Browser\`) — there can only be one. Installing Sine's bootloader for _any one profile_ replaces that shared file, which silently stops fx-autoconfig from running on **every other profile on that same installation** too, even ones you never touched. Sine's own mod list is per-profile, so a profile that only had Second Sidebar copied into `chrome/JS/` the old way ends up with no loader running it at all - see [sinazadeh#4](https://github.com/sinazadeh/zen-second-sidebar-enhanced/issues/4) for the original investigation, where it looks like "it broke on my main profile" even though nothing there was touched directly.
-> **fx-autoconfig and Sine share one `config.js` per browser _installation_, not per profile.** Both ultimately work by pointing Firefox's `general.config.filename` at a single bootstrap file inside the browser's install directory (e.g. `C:\Program Files\Zen Browser\`) — there can only be one. Installing Sine's bootloader for _any one profile_ replaces that shared file, which silently stops fx-autoconfig from running on **every other profile on that same installation** too, even ones you never touched. Sine's own mod list is per-profile, so a profile that only had Second Sidebar copied into `chrome/JS/` the old way ends up with no loader running it at all, and it looks like "it broke on my main profile" even though nothing there was touched directly.
+> **fx-autoconfig and Sine share one `config.js` per browser _installation_, not per profile.** Both ultimately work by pointing Firefox's `general.config.filename` at a single bootstrap file inside the browser's install directory (e.g. `C:\Program Files\Zen Browser\`) — there can only be one. Installing Sine's bootloader for _any one profile_ replaces that shared file, which silently stops fx-autoconfig from running on **every other profile on that same installation** too, even ones you never touched. Sine's own mod list is per-profile, so a profile that only had Second Sidebar copied into `chrome/JS/` the old way ends up with no loader running it at all for the original investigation, where it looks like "it broke on my main profile" even though nothing there was touched directly.
 >
 > If you want to try Sine without this risk, test it on a separate browser _installation_ (a portable copy, a different release channel, etc.), not just a separate profile. If you've already installed Sine's bootloader and other profiles on the same install stopped loading `second_sidebar.uc.mjs`, your options are: add Second Sidebar as a Sine mod on those profiles too (below) and delete the now-inert `chrome/JS/second_sidebar.uc.mjs` / `second_sidebar/`, or revert Sine's bootloader to restore fx-autoconfig's original `config.js` if you'd rather not run Sine on this installation at all.
 
@@ -48,48 +47,9 @@ Pick whichever loader you already use (or prefer) — both install the exact sam
 
 Use **Export settings** / **Import settings** (sidebar settings popup) to save or restore the sidebar and every web panel's settings as one JSON file. This covers configuration only, not per-panel state like the last-opened URL. Importing writes the file's settings to disk immediately; restart the browser afterward for the change to fully take effect.
 
-## Motivation
-
-I've tried various browsers, such as Vivaldi, Edge, Floorp, and Zen, and they all have one thing in common that I can't imagine using a browser without — the sidebar. Unfortunately, Firefox, which I feel most closely aligns with my needs in terms of spirit and functionality, has a rather unsatisfactory sidebar. Therefore, I decided to create another one myself, with blackjack and hookers!
-
 ## Demo
 
 https://github.com/user-attachments/assets/cd79d644-ca2c-4a30-ae8e-c265f41768b6
-
-## Features
-
-### Sidebar
-
-- Actions: `Show` • `Hide`
-- Customize via [Customize Toolbar...](https://support.mozilla.org/en-US/kb/customize-firefox-controls-buttons-and-toolbars)
-- Settings:
-  - General: `Position (Left / Right)` • `Width` • `Allow window dragging`
-  - Visibility: `Auto-hide sidebar` • `Auto-hide behaiour (Inline / Overlay)` • `Hide web panel when sidebar is hidden` • `Set layout-independent shortcut to hide/show sidebar`
-  - Web panel: `Default floating panel offset` • `New panel position (Before plus button / After plus button)` • `Show geometry hint` • `Set layout-independent shortcut to open/close the last active panel`
-  - Web panel button: `Container indicator (Off / Left / Right / Top / Bottom / Around)` • `Tooltip (Off / Title / URL / Title and URL)` • `Show full URL in tooltip`
-  - Web panel toolbar: `Auto-hide forward button` • `Auto-hide back button`
-  - Animations: `Animate sidebar` • `Animate web panel toolbar`
-  - Backup: `Export settings` • `Import settings`
-
-### Web panels
-
-- Actions: `Create` • `Delete` • `Edit` • `Change position and size` • `Reset position and size` • `Unload` • `Mute` • `Unmute` • `Pin` • `Unpin` • `Change zoom` • `Go back` • `Go forward` • `Reload` • `Go home`
-- Extensions support
-- Link context menu: `Open Link in Second Sidebar` • `Preview Link in Second Sidebar` (shown only for links that Firefox can open in a tab)
-- Popup notifications support (permissions to use microphone/camera/location, etc.)
-- Settings:
-  - General: `URL` • `Multi-Account Container` • `Temporary` • `Mobile view` • `Zoom`
-  - Title: `Dynamic` • `Set static title`
-  - Favicon: `Dynamic` • `Set static favicon`
-  - Position and size: `Mode (Floating / Pinned)` • `Always on top` • `Position anchor` • `Horizontal offset` • `Vertical offset` • `Width` • `Height`
-  - Loading: `Load into memory at startup` • `Restore last opened page` • `Unload from memory after closing` • `Unload after inactivity` • `Periodic reload` • `Reload when address changes`
-  - Keyboard shortcut: `Set layout-independent shortcut to hide/show web panel`
-  - CSS selector: `Enable` • `Set CSS selector`
-  - Hide elements: `Hide toolbar` • `Hide sound icon` • `Hide notification badge`
-
-### Widgets
-
-- `Second Sidebar` to show / hide sidebar
 
 ## Troubleshooting
 
