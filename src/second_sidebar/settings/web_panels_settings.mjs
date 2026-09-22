@@ -1,7 +1,8 @@
-import { Settings } from "./settings.mjs";
+import { FileSettings } from "./settings.mjs";
 import { WebPanelSettings } from "./web_panel_settings.mjs";
 
-const PREF = "second-sidebar.web-panels";
+const PATH = "second-sidebar-data/web-panels.json";
+const LEGACY_PREF = "second-sidebar.web-panels";
 
 export class WebPanelsSettings {
   /**@type {Array<WebPanelSettings} */
@@ -23,25 +24,25 @@ export class WebPanelsSettings {
    *
    * @param {string} sidebarPosition
    * @param {string} defaultFloatingOffset
-   * @returns {WebPanelsSettings}
+   * @returns {Promise<WebPanelsSettings>}
    */
-  static load(sidebarPosition, defaultFloatingOffset) {
-    const pref = Settings.load(PREF) ?? [];
+  static async load(sidebarPosition, defaultFloatingOffset) {
+    const data = (await FileSettings.load(PATH, LEGACY_PREF)) ?? [];
 
     return new WebPanelsSettings(
-      pref.map((webPanelPref) =>
+      data.map((webPanelData) =>
         WebPanelSettings.fromObject(
           sidebarPosition,
           `var(--space-${defaultFloatingOffset})`,
-          webPanelPref,
+          webPanelData,
         ),
       ),
     );
   }
 
   save() {
-    Settings.save(
-      PREF,
+    return FileSettings.save(
+      PATH,
       this.#webPanels.map((webPanel) => webPanel.toObject()),
     );
   }

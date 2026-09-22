@@ -214,13 +214,11 @@ export class SidebarController {
 
   close() {
     SidebarControllers.sidebarToolbarCollapser.clearTimers();
-    const webPanelController =
-      SidebarControllers.webPanelsController.getActive();
-    webPanelController?.close();
     SidebarElements.sidebarBox.hide();
     SidebarElements.sidebarToolbar.setPeriodicReloadPanelUUID(null);
     SidebarElements.sidebarSplitter.hide();
     SidebarElements.afterSplitter.hide();
+    SidebarControllers.webPanelsController.close();
   }
 
   /**
@@ -353,7 +351,7 @@ export class SidebarController {
       SidebarElements.sidebarMain.removeAttribute("overlay");
     }
     if (!autoHideSidebar) {
-        SidebarControllers.sidebarMainCollapser.uncollapse({ delay: 0 });
+      SidebarControllers.sidebarMainCollapser.uncollapse({ delay: 0 });
     }
     // hide web panel when sidebar is hidden
     this.sidebarWidgetHideWebPanel = sidebarWidgetHideWebPanel;

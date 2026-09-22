@@ -8,9 +8,9 @@ import { isPopupWindow } from "./utils/windows.mjs";
 export class SidebarInjector {
   /**
    *
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    */
-  static inject() {
+  static async inject() {
     if (isPopupWindow()) {
       console.log("Failed to load second sidebar because window is popup");
       return false;
@@ -20,13 +20,13 @@ export class SidebarInjector {
     const sidebarSettings = SidebarSettings.load();
 
     console.log("Loading web panel settings...");
-    const webPanelsSettings = WebPanelsSettings.load(
+    const webPanelsSettings = await WebPanelsSettings.load(
       sidebarSettings.position,
       sidebarSettings.defaultFloatingOffset,
     );
 
     console.log("Loading web panel state...");
-    const webPanelsState = WebPanelsState.load();
+    const webPanelsState = await WebPanelsState.load();
 
     console.log("Elements creation...");
     SidebarElements.create();

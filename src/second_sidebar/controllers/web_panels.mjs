@@ -6,6 +6,7 @@ import {
 } from "./events.mjs";
 
 import { NetUtilWrapper } from "../wrappers/net_utils.mjs";
+import { ChromeUtilsWrapper } from "../wrappers/chrome_utils.mjs";
 import { SidebarControllers } from "../sidebar_controllers.mjs";
 import { SidebarElements } from "../sidebar_elements.mjs";
 import { WebPanelController } from "./web_panel.mjs";
@@ -14,15 +15,26 @@ import { WebPanelState } from "../settings/web_panel_state.mjs";
 import { WebPanelsSettings } from "../settings/web_panels_settings.mjs";
 import { WebPanelsState } from "../settings/web_panels_state.mjs";
 import { WindowWrapper } from "../wrappers/window.mjs";
+import { extractHostname } from "../utils/url.mjs";
 import { gCustomizeModeWrapper } from "../wrappers/g_customize_mode.mjs";
 
+const SAVE_DEBOUNCE_MS = 300;
+
 export class WebPanelsController {
+  /**@type {string?} */
+  #lastMainBrowserHostname = null;
+  /**@type {number?} */
+  #saveSettingsTimer = null;
+  /**@type {number?} */
+  #saveStateTimer = null;
+
   constructor() {
     /**@type {Map<string, WebPanelController>} */
     this.webPanelControllers = new Map();
     /**@type {string?} */
     this.lastOpenedWebPanelUUID = null;
     this.#setupListeners();
+    this.#setupMainBrowserListener();
   }
 
   #setupListeners() {
@@ -145,13 +157,12 @@ export class WebPanelsController {
       }, timeout);
     });
 
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_TITLE, (event) => {
-      const { uuid, dynamicTitle, title } = event.detail;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setTitle(dynamicTitle, title);
-      webPanelController.updateTitle();
-    });
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_TITLE,
+      ["dynamicTitle", "title"],
+      "setTitle",
+      { onChanged: (webPanelController) => webPanelController.updateTitle() },
+    );
 
     listenEvent(WebPanelEvents.EDIT_WEB_PANEL_FAVICON_URL, (event) => {
       const { uuid, dynamicFavicon, faviconURL, timeout } = event.detail;
@@ -211,205 +222,115 @@ export class WebPanelsController {
       }
     });
 
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_ANCHOR, (event) => {
-      const uuid = event.detail.uuid;
-      const anchor = event.detail.anchor;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setAnchor(anchor);
-
-      if (webPanelController.isActive()) {
-        SidebarControllers.sidebarGeometry.calculateAndSetFloatingGeometry(
-          webPanelController,
-          {
-            forceUpdate: true,
-          },
-        );
-      }
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_OFFSET_X_TYPE, (event) => {
-      const uuid = event.detail.uuid;
-      const offsetXType = event.detail.offsetXType;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setOffsetXType(offsetXType);
-
-      if (webPanelController.isActive()) {
-        SidebarControllers.sidebarGeometry.calculateAndSetFloatingGeometry(
-          webPanelController,
-          {
-            forceUpdate: true,
-          },
-        );
-      }
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_OFFSET_Y_TYPE, (event) => {
-      const uuid = event.detail.uuid;
-      const offsetYType = event.detail.offsetYType;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setOffsetYType(offsetYType);
-
-      if (webPanelController.isActive()) {
-        SidebarControllers.sidebarGeometry.calculateAndSetFloatingGeometry(
-          webPanelController,
-          {
-            forceUpdate: true,
-          },
-        );
-      }
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_WIDTH_TYPE, (event) => {
-      const uuid = event.detail.uuid;
-      const widthType = event.detail.widthType;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setWidthType(widthType);
-
-      if (webPanelController.isActive()) {
-        SidebarControllers.sidebarGeometry.calculateAndSetFloatingGeometry(
-          webPanelController,
-          {
-            forceUpdate: true,
-          },
-        );
-      }
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_HEIGHT_TYPE, (event) => {
-      const uuid = event.detail.uuid;
-      const heightType = event.detail.heightType;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setHeightType(heightType);
-
-      if (webPanelController.isActive()) {
-        SidebarControllers.sidebarGeometry.calculateAndSetFloatingGeometry(
-          webPanelController,
-          {
-            forceUpdate: true,
-          },
-        );
-      }
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_USER_CONTEXT_ID, (event) => {
-      const uuid = event.detail.uuid;
-      const userContextId = event.detail.userContextId;
-      const webPanelController = this.get(uuid);
-      webPanelController.setUserContextId(userContextId);
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_ALWAYS_ON_TOP, (event) => {
-      const uuid = event.detail.uuid;
-      const alwaysOnTop = event.detail.alwaysOnTop;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setAlwaysOnTop(alwaysOnTop);
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_MOBILE, (event) => {
-      const uuid = event.detail.uuid;
-      const mobile = event.detail.mobile;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setMobile(mobile);
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_LOAD_ON_STARTUP, (event) => {
-      const uuid = event.detail.uuid;
-      const loadOnStartup = event.detail.loadOnStartup;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setLoadOnStartup(loadOnStartup);
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_LOAD_LAST_URL, (event) => {
-      const uuid = event.detail.uuid;
-      const loadLastUrl = event.detail.loadLastUrl;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setLoadLastUrl(loadLastUrl);
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_UNLOAD_ON_CLOSE, (event) => {
-      const uuid = event.detail.uuid;
-      const unloadOnClose = event.detail.unloadOnClose;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setUnloadOnClose(unloadOnClose);
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_SHORTCUT, (event) => {
-      const uuid = event.detail.uuid;
-      const shortcut = event.detail.shortcut;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setShortcut(shortcut);
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_HIDE_TOOLBAR, (event) => {
-      const uuid = event.detail.uuid;
-      const hideToolbar = event.detail.hideToolbar;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setHideToolbar(hideToolbar);
-      hideToolbar
-        ? SidebarControllers.sidebarController.collapseToolbar()
-        : SidebarControllers.sidebarController.uncollapseToolbar();
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_HIDE_SOUND_ICON, (event) => {
-      const uuid = event.detail.uuid;
-      const hideSoundIcon = event.detail.hideSoundIcon;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setHideSoundIcon(hideSoundIcon);
-    });
-
-    listenEvent(
-      WebPanelEvents.EDIT_WEB_PANEL_HIDE_NOTIFICATION_BADGE,
-      (event) => {
-        const uuid = event.detail.uuid;
-        const hideNotificationBadge = event.detail.hideNotificationBadge;
-
-        const webPanelController = this.get(uuid);
-        webPanelController.setHideNotificationBadge(hideNotificationBadge);
-      },
+    // The five floating-geometry settings below all follow the same shape:
+    // apply the setter, then recalculate on-screen geometry if the panel is
+    // currently visible.
+    this.#bindGeometrySetting(
+      WebPanelEvents.EDIT_WEB_PANEL_ANCHOR,
+      "anchor",
+      "setAnchor",
+    );
+    this.#bindGeometrySetting(
+      WebPanelEvents.EDIT_WEB_PANEL_OFFSET_X_TYPE,
+      "offsetXType",
+      "setOffsetXType",
+    );
+    this.#bindGeometrySetting(
+      WebPanelEvents.EDIT_WEB_PANEL_OFFSET_Y_TYPE,
+      "offsetYType",
+      "setOffsetYType",
+    );
+    this.#bindGeometrySetting(
+      WebPanelEvents.EDIT_WEB_PANEL_WIDTH_TYPE,
+      "widthType",
+      "setWidthType",
+    );
+    this.#bindGeometrySetting(
+      WebPanelEvents.EDIT_WEB_PANEL_HEIGHT_TYPE,
+      "heightType",
+      "setHeightType",
     );
 
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_PERIODIC_RELOAD, (event) => {
-      const uuid = event.detail.uuid;
-      const periodicReload = event.detail.periodicReload;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setPeriodicReload(periodicReload);
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_ZOOM_OUT, (event) => {
-      const uuid = event.detail.uuid;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.zoomOut();
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_ZOOM_IN, (event) => {
-      const uuid = event.detail.uuid;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.zoomIn();
-    });
-
-    listenEvent(WebPanelEvents.EDIT_WEB_PANEL_ZOOM, (event) => {
-      const uuid = event.detail.uuid;
-      const value = event.detail.value;
-
-      const webPanelController = this.get(uuid);
-      webPanelController.setZoom(value);
-    });
+    // The settings below are each just "apply this one setter", optionally
+    // followed by a small fixed side effect (onChanged).
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_USER_CONTEXT_ID,
+      "userContextId",
+      "setUserContextId",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_ALWAYS_ON_TOP,
+      "alwaysOnTop",
+      "setAlwaysOnTop",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_MOBILE,
+      "mobile",
+      "setMobile",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_LOAD_ON_STARTUP,
+      "loadOnStartup",
+      "setLoadOnStartup",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_LOAD_LAST_URL,
+      "loadLastUrl",
+      "setLoadLastUrl",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_UNLOAD_ON_CLOSE,
+      "unloadOnClose",
+      "setUnloadOnClose",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_UNLOAD_AFTER_INACTIVITY,
+      "unloadAfterInactivity",
+      "setUnloadAfterInactivity",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_SHORTCUT,
+      "shortcut",
+      "setShortcut",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_HIDE_TOOLBAR,
+      "hideToolbar",
+      "setHideToolbar",
+      {
+        onChanged: (_webPanelController, { hideToolbar }) =>
+          hideToolbar
+            ? SidebarControllers.sidebarController.collapseToolbar()
+            : SidebarControllers.sidebarController.uncollapseToolbar(),
+      },
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_HIDE_SOUND_ICON,
+      "hideSoundIcon",
+      "setHideSoundIcon",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_HIDE_NOTIFICATION_BADGE,
+      "hideNotificationBadge",
+      "setHideNotificationBadge",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_PERIODIC_RELOAD,
+      "periodicReload",
+      "setPeriodicReload",
+    );
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_RELOAD_ON_URL_CHANGE,
+      "reloadOnUrlChange",
+      "setReloadOnUrlChange",
+    );
+    this.#bindSimpleAction(WebPanelEvents.EDIT_WEB_PANEL_ZOOM_OUT, "zoomOut");
+    this.#bindSimpleAction(WebPanelEvents.EDIT_WEB_PANEL_ZOOM_IN, "zoomIn");
+    this.#bindSimpleSetting(
+      WebPanelEvents.EDIT_WEB_PANEL_ZOOM,
+      "value",
+      "setZoom",
+    );
 
     listenEvent(WebPanelEvents.DELETE_WEB_PANEL, async (event) => {
       const uuid = event.detail.uuid;
@@ -423,23 +344,138 @@ export class WebPanelsController {
     });
   }
 
+  /**
+   * Binds a WebPanelController setter to an edit event: apply the setter
+   * with the event's value(s), then run an optional follow-up. Covers the
+   * many settings that are just "call one setter", optionally followed by a
+   * small fixed side effect, so those don't each need a bespoke handler.
+   * Settings with real branching logic (different values triggering
+   * different methods, debounced timeouts, etc.) stay hand-written above.
+   *
+   * @param {string} event
+   * @param {string|Array<string>} valueKeys - event.detail key(s) passed to the setter, in order
+   * @param {string} setterName
+   * @param {object} params
+   * @param {function(WebPanelController, object):void} params.onChanged
+   */
+  #bindSimpleSetting(event, valueKeys, setterName, { onChanged } = {}) {
+    const keys = Array.isArray(valueKeys) ? valueKeys : [valueKeys];
+    listenEvent(event, (e) => {
+      const webPanelController = this.get(e.detail.uuid);
+      webPanelController[setterName](...keys.map((key) => e.detail[key]));
+      onChanged?.(webPanelController, e.detail);
+    });
+  }
+
+  /**
+   * Same shape as #bindSimpleSetting, for the floating-geometry settings
+   * that all also need the panel's on-screen geometry recalculated when
+   * it's currently visible.
+   *
+   * @param {string} event
+   * @param {string} valueKey
+   * @param {string} setterName
+   */
+  #bindGeometrySetting(event, valueKey, setterName) {
+    this.#bindSimpleSetting(event, valueKey, setterName, {
+      onChanged: (webPanelController) => {
+        if (webPanelController.isActive()) {
+          SidebarControllers.sidebarGeometry.calculateAndSetFloatingGeometry(
+            webPanelController,
+            { forceUpdate: true },
+          );
+        }
+      },
+    });
+  }
+
+  /**
+   * Binds a no-argument WebPanelController action (e.g. zoomIn/zoomOut) to
+   * an edit event that only carries the target uuid.
+   *
+   * @param {string} event
+   * @param {string} methodName
+   */
+  #bindSimpleAction(event, methodName) {
+    listenEvent(event, (e) => {
+      this.get(e.detail.uuid)[methodName]();
+    });
+  }
+
+  // Reload panels with "reload on address change" enabled whenever the main
+  // browser's active tab is switched or navigated to a different hostname.
+  #setupMainBrowserListener() {
+    const gBrowser = new WindowWrapper().gBrowser;
+    const checkHostnameChange = () => {
+      try {
+        const url = gBrowser.raw?.selectedBrowser?.currentURI?.spec;
+        if (!url) return;
+        const hostname = extractHostname(url);
+        if (
+          this.#lastMainBrowserHostname !== null &&
+          hostname !== this.#lastMainBrowserHostname
+        ) {
+          this.#reloadPanelsOnUrlChange();
+        }
+        this.#lastMainBrowserHostname = hostname;
+      } catch (error) {
+        console.error(
+          "Second Sidebar: failed to check main browser hostname change",
+          error,
+        );
+      }
+    };
+
+    gBrowser.addEventListener("TabSelect", checkHostnameChange);
+    gBrowser.addProgressListener({
+      QueryInterface: ChromeUtilsWrapper.generateQI([
+        "nsIWebProgressListener",
+        "nsISupportsWeakReference",
+      ]),
+      onLocationChange: (webProgress) => {
+        if (webProgress.isTopLevel) checkHostnameChange();
+      },
+    });
+  }
+
+  #reloadPanelsOnUrlChange() {
+    for (const webPanelController of this.getAll()) {
+      if (
+        webPanelController.getReloadOnUrlChange() &&
+        !webPanelController.isUnloaded()
+      ) {
+        webPanelController.reload();
+      }
+    }
+  }
+
   #setupWebPanelsBrowserListeners() {
     // Open/close corresponding web panel when tab is selected
     SidebarElements.webPanelsBrowser.addTabSelectListener(() => {
       const activeWebPanelTab =
         SidebarElements.webPanelsBrowser.getActiveWebPanelTab();
       if (activeWebPanelTab.isEmpty()) {
-        SidebarControllers.sidebarController.close();
+        if (!SidebarControllers.sidebarController.closed()) {
+          SidebarControllers.sidebarController.close();
+        }
       } else {
         this.lastOpenedWebPanelUUID = activeWebPanelTab.uuid;
       }
       for (const [uuid, webPanelController] of this.webPanelControllers) {
         if (uuid === activeWebPanelTab.uuid) {
           webPanelController.open();
-        } else {
-          webPanelController.close();
         }
       }
+      // Defer closing other panels: closing an unload-on-close panel removes
+      // its tab, and Gecko reassigns the selected tab mid-removal, which
+      // would reenter this handler synchronously and corrupt tabbrowser state.
+      setTimeout(() => {
+        for (const [uuid, webPanelController] of this.webPanelControllers) {
+          if (uuid !== activeWebPanelTab.uuid) {
+            webPanelController.close();
+          }
+        }
+      }, 0);
     });
     // Revert zoom to default when it's changed
     SidebarElements.webPanelsBrowser.addZoomChangeListener((tab) => {
@@ -448,6 +484,15 @@ export class WebPanelsController {
       if (tab.linkedBrowser.getZoom() != zoom) {
         webPanelController.setZoom(zoom);
       }
+    });
+  }
+
+  /**
+   * @param {function(KeyboardEvent):void} callback
+   */
+  addKeypressListener(callback) {
+    SidebarElements.webPanelsBrowser.waitInitialization(() => {
+      SidebarElements.webPanelsBrowser.addKeypressListener(callback);
     });
   }
 
@@ -631,7 +676,13 @@ export class WebPanelsController {
   }
 
   saveSettings() {
-    this.dumpSettings().save();
+    // Coalesce bursts of settings changes (drag/resize end, multiple edits) into one write.
+    clearTimeout(this.#saveSettingsTimer);
+    this.#saveSettingsTimer = setTimeout(() => {
+      this.dumpSettings()
+        .save()
+        .catch((error) => console.error("Failed to save web panels:", error));
+    }, SAVE_DEBOUNCE_MS);
   }
 
   dumpState() {
@@ -643,6 +694,14 @@ export class WebPanelsController {
   }
 
   saveState() {
-    this.dumpState().save();
+    // Coalesce state saves so multiple panels finishing navigation close together only write once.
+    clearTimeout(this.#saveStateTimer);
+    this.#saveStateTimer = setTimeout(() => {
+      this.dumpState()
+        .save()
+        .catch((error) =>
+          console.error("Failed to save web panels state:", error),
+        );
+    }, SAVE_DEBOUNCE_MS);
   }
 }

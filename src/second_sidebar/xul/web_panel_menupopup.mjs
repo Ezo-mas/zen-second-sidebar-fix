@@ -87,13 +87,25 @@ export class WebPanelMenuPopup extends MenuPopup {
   }
 
   /**
+   * Every item below (besides Customize) fires its callback with the
+   * currently open menu's target web panel, so a click just needs wiring to
+   * this one shared listener instead of repeating that itself.
+   *
+   * @param {MenuItem} item
+   * @param {function(WebPanelController):void} callback
+   */
+  #listenItemClick(item, callback) {
+    item.addEventListener("command", () => {
+      callback(this.webPanelController);
+    });
+  }
+
+  /**
    *
    * @param {function(WebPanelController):void} callback
    */
   listenUnloadItemClick(callback) {
-    this.unloadItem.addEventListener("command", () => {
-      callback(this.webPanelController);
-    });
+    this.#listenItemClick(this.unloadItem, callback);
   }
 
   /**
@@ -101,9 +113,7 @@ export class WebPanelMenuPopup extends MenuPopup {
    * @param {function(WebPanelController):void} callback
    */
   listenMuteItemClick(callback) {
-    this.muteItem.addEventListener("command", () => {
-      callback(this.webPanelController);
-    });
+    this.#listenItemClick(this.muteItem, callback);
   }
 
   /**
@@ -111,9 +121,7 @@ export class WebPanelMenuPopup extends MenuPopup {
    * @param {function(WebPanelController):void} callback
    */
   listenResetPositionItemClick(callback) {
-    this.resetPositionItem.addEventListener("command", () => {
-      callback(this.webPanelController);
-    });
+    this.#listenItemClick(this.resetPositionItem, callback);
   }
 
   /**
@@ -121,9 +129,7 @@ export class WebPanelMenuPopup extends MenuPopup {
    * @param {function(WebPanelController):void} callback
    */
   listenResetWidthItemClick(callback) {
-    this.resetWidthItem.addEventListener("command", () => {
-      callback(this.webPanelController);
-    });
+    this.#listenItemClick(this.resetWidthItem, callback);
   }
 
   /**
@@ -131,9 +137,7 @@ export class WebPanelMenuPopup extends MenuPopup {
    * @param {function(WebPanelController):void} callback
    */
   listenResetHeightItemClick(callback) {
-    this.resetHeightItem.addEventListener("command", () => {
-      callback(this.webPanelController);
-    });
+    this.#listenItemClick(this.resetHeightItem, callback);
   }
 
   /**
@@ -141,9 +145,7 @@ export class WebPanelMenuPopup extends MenuPopup {
    * @param {function(WebPanelController):void} callback
    */
   listenResetAllItemClick(callback) {
-    this.resetAllItem.addEventListener("command", () => {
-      callback(this.webPanelController);
-    });
+    this.#listenItemClick(this.resetAllItem, callback);
   }
 
   /**
@@ -151,9 +153,7 @@ export class WebPanelMenuPopup extends MenuPopup {
    * @param {function(WebPanelController):void} callback
    */
   listenEditItemClick(callback) {
-    this.editItem.addEventListener("command", () => {
-      callback(this.webPanelController);
-    });
+    this.#listenItemClick(this.editItem, callback);
   }
 
   /**
@@ -161,9 +161,7 @@ export class WebPanelMenuPopup extends MenuPopup {
    * @param {function(WebPanelController):void} callback
    */
   listenDeleteItemClick(callback) {
-    this.deleteItem.addEventListener("command", () => {
-      callback(this.webPanelController);
-    });
+    this.#listenItemClick(this.deleteItem, callback);
   }
 
   /**

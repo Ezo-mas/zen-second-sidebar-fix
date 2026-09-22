@@ -143,8 +143,8 @@ export class SidebarMainController {
   uncollapse() {
     this.#clearCollapseTransitionEndListener();
     SidebarElements.sidebarMain.removeAttribute("sb2-collapsed");
-    SidebarElements.sidebarMain.setProperty("margin-right", "0px");
-    SidebarElements.sidebarMain.setProperty("margin-left", "0px");
+    SidebarElements.sidebarMain.removeProperty("margin-right");
+    SidebarElements.sidebarMain.removeProperty("margin-left");
     SidebarElements.sidebarCollapseButton.setOpen(true);
   }
 

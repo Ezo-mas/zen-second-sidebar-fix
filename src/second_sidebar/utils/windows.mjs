@@ -1,15 +1,13 @@
-import { XULElement } from "../xul/base/xul_element.mjs";
-
 /**
- *
  * @returns {boolean}
  */
 export const isPopupWindow = () => {
-  const mainWindow = new XULElement({
-    element: document.getElementById("main-window"),
-  });
+  const mainWindow =
+    document.getElementById("main-window") ?? document.documentElement;
+  const chromeHidden = mainWindow?.getAttribute("chromehidden") ?? "";
+
   return (
-    mainWindow.hasAttribute("chromehidden") &&
-    mainWindow.getAttribute("chromehidden").includes("extrachrome")
+    chromeHidden.split(/\s+/).includes("extrachrome") ||
+    window.toolbar?.visible === false
   );
 };

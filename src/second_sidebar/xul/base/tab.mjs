@@ -50,6 +50,28 @@ export class Tab extends XULElement {
   }
 
   /**
+   * @returns {boolean}
+   */
+  get undiscardable() {
+    return this.element.undiscardable ?? false;
+  }
+
+  /**
+   * Opts this tab out of Firefox's automatic memory-pressure tab unloader
+   * (mirrors the `autoDiscardable` WebExtension tabs property). Tabs
+   * playing audio or currently selected are only deprioritized by that
+   * unloader, not exempt, so it can still discard one; recovering from
+   * that inside a hidden secondary window is not reliable here.
+   *
+   * @param {boolean} value
+   * @returns {Tab}
+   */
+  setUndiscardable(value) {
+    this.element.undiscardable = value;
+    return this;
+  }
+
+  /**
    *
    * @returns {Tab}
    */

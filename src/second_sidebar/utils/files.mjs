@@ -1,19 +1,43 @@
 import { ChromeRegistry } from "../wrappers/chrome_registry.mjs";
+import { DirectoryServiceWrapper } from "../wrappers/directory_service.mjs";
 import { IOUtilsWrapper } from "../wrappers/io_utils.mjs";
 import { PathUtilsWrapper } from "../wrappers/path_utils.mjs";
 
-const CONTENT_URL = "chrome://userchrome/content/";
+// Persistent data (settings, state) lives directly under the profile's
+// chrome/ directory (Gecko's own "UChrm" key - see DirectoryServiceWrapper),
+// never inside a loader- or mod-manager-owned folder, so it survives addon
+// updates/reinstalls under any loader (Sine deletes and re-extracts its
+// entire mod folder - including anything written inside it - on every
+// update).
 
 /**
  *
  * @param {string} relativePath
  * @param {string} data
- * @returns {Promise<string>}
  */
 export async function writeFile(relativePath, data) {
-  const path = makePath(relativePath);
+  const path = makeDataPath(relativePath);
   await IOUtilsWrapper.writeUTF8(path, data);
-  return makeChromePath(relativePath);
+}
+
+/**
+ *
+ * @param {string} relativePath
+ * @returns {Promise<string>}
+ */
+export async function readFile(relativePath) {
+  const path = makeDataPath(relativePath);
+  return await IOUtilsWrapper.readUTF8(path);
+}
+
+/**
+ *
+ * @param {string} relativePath
+ * @returns {Promise<boolean>}
+ */
+export async function fileExists(relativePath) {
+  const path = makeDataPath(relativePath);
+  return await IOUtilsWrapper.exists(path);
 }
 
 /**
@@ -21,7 +45,7 @@ export async function writeFile(relativePath, data) {
  * @param {string} relativePath
  */
 export async function removeFile(relativePath) {
-  const path = makePath(relativePath);
+  const path = makeDataPath(relativePath);
   await IOUtilsWrapper.remove(path);
 }
 
@@ -30,20 +54,103 @@ export async function removeFile(relativePath) {
  * @param {string} relativePath
  * @returns {string}
  */
-function makePath(relativePath) {
-  const contentDir = ChromeRegistry.convertChromeURL(CONTENT_URL);
-  const resourcePath = contentDir.QueryInterface(Ci.nsIFileURL).file.parent
-    .path;
-  const resourcePathParts = PathUtilsWrapper.split(resourcePath);
-  const relativePathParts = relativePath.split("/");
-  return PathUtilsWrapper.join(resourcePathParts.concat(relativePathParts));
+function makeDataPath(relativePath) {
+  const rootParts = PathUtilsWrapper.split(
+    DirectoryServiceWrapper.profileChromeDir,
+  );
+  return PathUtilsWrapper.join(rootParts.concat(relativePath.split("/")));
+}
+
+// Before the change above, persistent data resolved under fx-autoconfig's
+// chrome://userchrome/content/ alias (<profile>/chrome/resources/) instead
+// of the profile's chrome/ directory directly. Anyone updating across that
+// change has their existing data stranded at the old location - the addon
+// otherwise just sees no file there and starts over with nothing. A loader
+// that never registered that alias (e.g. a fresh Sine-only install) has
+// nothing to migrate, which is not an error.
+/**
+ *
+ * @param {string} relativePath
+ * @returns {string | null}
+ */
+function makeLegacyDataPath(relativePath) {
+  try {
+    const contentDir = ChromeRegistry.convertChromeURL(
+      "chrome://userchrome/content/",
+    );
+    const resourcePath = contentDir.QueryInterface(Ci.nsIFileURL).file.parent
+      .path;
+    const rootParts = PathUtilsWrapper.split(resourcePath);
+    return PathUtilsWrapper.join(rootParts.concat(relativePath.split("/")));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Moves a persistent-data file forward from its pre-7a5dc5d location if one
+ * exists there and nothing has been written to the current location yet.
+ * A no-op once the current location has a file, so this only ever runs
+ * once per profile.
+ *
+ * @param {string} relativePath
+ */
+export async function migrateLegacyFile(relativePath) {
+  if (await fileExists(relativePath)) {
+    return;
+  }
+  const legacyPath = makeLegacyDataPath(relativePath);
+  if (!legacyPath || !(await IOUtilsWrapper.exists(legacyPath))) {
+    return;
+  }
+  const data = await IOUtilsWrapper.readUTF8(legacyPath);
+  await writeFile(relativePath, data);
+  await IOUtilsWrapper.remove(legacyPath);
+}
+
+// A patched-module file (see patchers/*.mjs) is transient: written, then
+// immediately dynamically imported back in, then deleted - every browser
+// startup regenerates it, so unlike the persistent data above it doesn't
+// need to survive a mod-folder wipe. Writing and importing it from
+// alongside this addon's own already-loading files (resolved from this
+// module's own URL, whatever chrome:// origin actually served it) keeps it
+// on an origin dynamic import() is guaranteed to accept: a separate,
+// loader-specific alias (fx-autoconfig's chrome://userchrome/content/) may
+// not be registered under every loader, and a file:// fallback is blocked
+// outright by the CSP some loaders (Sine) apply to dynamically imported
+// scripts ("script-src chrome: resource: moz-src:" - no file:).
+const SECOND_SIDEBAR_ROOT_URL = new URL("../", import.meta.url).href;
+
+/**
+ *
+ * @param {string} relativePath
+ * @param {string} data
+ * @returns {Promise<string>} a URL the written file can be dynamically imported from
+ */
+export async function writePatchedModule(relativePath, data) {
+  const path = makeSelfPath(relativePath);
+  await IOUtilsWrapper.writeUTF8(path, data);
+  return new URL(relativePath, SECOND_SIDEBAR_ROOT_URL).href;
 }
 
 /**
  *
- * @param {string} path
+ * @param {string} relativePath
+ */
+export async function removePatchedModule(relativePath) {
+  const path = makeSelfPath(relativePath);
+  await IOUtilsWrapper.remove(path);
+}
+
+/**
+ *
+ * @param {string} relativePath
  * @returns {string}
  */
-function makeChromePath(path) {
-  return CONTENT_URL + path;
+function makeSelfPath(relativePath) {
+  const rootFile = ChromeRegistry.convertChromeURL(
+    SECOND_SIDEBAR_ROOT_URL,
+  ).QueryInterface(Ci.nsIFileURL).file;
+  const rootParts = PathUtilsWrapper.split(rootFile.path);
+  return PathUtilsWrapper.join(rootParts.concat(relativePath.split("/")));
 }

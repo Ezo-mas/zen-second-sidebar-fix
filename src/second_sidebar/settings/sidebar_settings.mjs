@@ -66,53 +66,25 @@ export class SidebarSettings {
   }
 
   /**
+   * Every field above has a default in the constructor's destructuring, so
+   * loading is just replaying whatever was saved (or nothing, for a field
+   * an older version never wrote) over those defaults.
    *
    * @returns {SidebarSettings}
    */
   static load() {
-    const pref = Settings.load(PREF) ?? {};
-    return new SidebarSettings({
-      position: pref.position,
-      padding: pref.padding,
-      allowWindowDragging: pref.allowWindowDragging,
-      newWebPanelPosition: pref.newWebPanelPosition,
-      defaultFloatingOffset: pref.defaultFloatingOffset,
-      autoHideBackButton: pref.autoHideBackButton,
-      autoHideForwardButton: pref.autoHideForwardButton,
-      containerBorder: pref.containerBorder,
-      tooltip: pref.tooltip,
-      tooltipFullUrl: pref.tooltipFullUrl,
-      autoHideSidebar: pref.autoHideSidebar,
-      autoHideSidebarBehavior: pref.autoHideSidebarBehavior,
-      sidebarWidgetHideWebPanel: pref.sidebarWidgetHideWebPanel,
-      sidebarWidgetShortcut: pref.sidebarWidgetShortcut,
-      lastWebPanelShortcut: pref.lastWebPanelShortcut,
-      hideSidebarAnimated: pref.hideSidebarAnimated,
-      hideToolbarAnimated: pref.hideToolbarAnimated,
-      enableSidebarBoxHint: pref.enableSidebarBoxHint,
-    });
+    return new SidebarSettings(Settings.load(PREF) ?? {});
+  }
+
+  /**
+   *
+   * @returns {object}
+   */
+  toObject() {
+    return { ...this };
   }
 
   save() {
-    Settings.save(PREF, {
-      position: this.position,
-      padding: this.padding,
-      allowWindowDragging: this.allowWindowDragging,
-      newWebPanelPosition: this.newWebPanelPosition,
-      defaultFloatingOffset: this.defaultFloatingOffset,
-      autoHideBackButton: this.autoHideBackButton,
-      autoHideForwardButton: this.autoHideForwardButton,
-      containerBorder: this.containerBorder,
-      tooltip: this.tooltip,
-      tooltipFullUrl: this.tooltipFullUrl,
-      autoHideSidebar: this.autoHideSidebar,
-      autoHideSidebarBehavior: this.autoHideSidebarBehavior,
-      sidebarWidgetHideWebPanel: this.sidebarWidgetHideWebPanel,
-      sidebarWidgetShortcut: this.sidebarWidgetShortcut,
-      lastWebPanelShortcut: this.lastWebPanelShortcut,
-      hideSidebarAnimated: this.hideSidebarAnimated,
-      hideToolbarAnimated: this.hideToolbarAnimated,
-      enableSidebarBoxHint: this.enableSidebarBoxHint,
-    });
+    Settings.save(PREF, this.toObject());
   }
 }

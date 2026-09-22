@@ -1,9 +1,10 @@
-import { OPEN_URL_IN, openTrustedLinkInWrapper } from "../wrappers/global.mjs";
 import { WebPanelEvents, sendEvents } from "./events.mjs";
 
 import { ClipboardHelperWrapper } from "../wrappers/clipboard_helper.mjs";
+import { ScriptSecurityManagerWrapper } from "../wrappers/script_security_manager.mjs";
 import { SidebarControllers } from "../sidebar_controllers.mjs";
 import { SidebarElements } from "../sidebar_elements.mjs";
+import { WindowWrapper } from "../wrappers/window.mjs";
 
 export class WebPanelMoreController {
   constructor() {
@@ -23,10 +24,19 @@ export class WebPanelMoreController {
       (event, uuid) => {
         const webPanelController =
           SidebarControllers.webPanelsController.get(uuid);
-        openTrustedLinkInWrapper(
-          webPanelController.getTabUrl(),
-          event.ctrlKey ? OPEN_URL_IN.BACKGROUND_TAB : OPEN_URL_IN.TAB,
+        const browserWindow = new WindowWrapper();
+        const tab = browserWindow.gBrowser.addTab(
+          webPanelController.getTabUrl() ?? webPanelController.getURL(),
+          {
+            triggeringPrincipal:
+              ScriptSecurityManagerWrapper.getSystemPrincipal(),
+            userContextId: webPanelController.getUserContextId(),
+            inBackground: event.ctrlKey,
+          },
         );
+        if (!event.ctrlKey) {
+          browserWindow.gBrowser.selectedTab = tab;
+        }
       },
     );
 

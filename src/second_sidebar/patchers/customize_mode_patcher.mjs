@@ -1,4 +1,4 @@
-import { removeFile, writeFile } from "../utils/files.mjs";
+import { removePatchedModule, writePatchedModule } from "../utils/files.mjs";
 
 const MODULE_URLS = [
   "resource:///modules/CustomizeMode.sys.mjs",
@@ -44,13 +44,13 @@ export class CustomizeModePatcher {
    * @param {string} moduleText
    */
   static async #replaceModule(moduleText) {
-    const chromePath = await writeFile(
+    const chromePath = await writePatchedModule(
       PATCHED_MODULE_RELATIVE_PATH,
       moduleText,
     );
     const module = await import(chromePath);
     this.#defineLazyGetter(module);
-    removeFile(PATCHED_MODULE_RELATIVE_PATH);
+    removePatchedModule(PATCHED_MODULE_RELATIVE_PATH);
   }
 
   /**

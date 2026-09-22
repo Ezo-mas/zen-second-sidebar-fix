@@ -124,6 +124,12 @@ export class WebPanelEditController {
           unloadOnClose,
         });
       },
+      unloadAfterInactivity: (uuid, unloadAfterInactivity) => {
+        sendEvents(WebPanelEvents.EDIT_WEB_PANEL_UNLOAD_AFTER_INACTIVITY, {
+          uuid,
+          unloadAfterInactivity: Number(unloadAfterInactivity),
+        });
+      },
       shortcut: (uuid, shortcut) => {
         sendEvents(WebPanelEvents.EDIT_WEB_PANEL_SHORTCUT, {
           uuid,
@@ -152,6 +158,12 @@ export class WebPanelEditController {
         sendEvents(WebPanelEvents.EDIT_WEB_PANEL_PERIODIC_RELOAD, {
           uuid,
           periodicReload: Number(periodicReload),
+        });
+      },
+      reloadOnUrlChange: (uuid, reloadOnUrlChange) => {
+        sendEvents(WebPanelEvents.EDIT_WEB_PANEL_RELOAD_ON_URL_CHANGE, {
+          uuid,
+          reloadOnUrlChange,
         });
       },
       zoomOut: (uuid) => {

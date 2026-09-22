@@ -40,6 +40,13 @@ export class WebPanelButton extends Widget {
     this.hideNotificationBadge(webPanelSettings.hideNotificationBadge);
 
     if (webPanelSettings.dynamicFavicon) {
+      // Show the last-known icon immediately rather than nothing while the
+      // lookup below (Places cache, then a network fallback) resolves -
+      // notably slower for a panel whose exact URL Places has no favicon
+      // recorded for (e.g. it's only ever been visited via deeper links).
+      if (webPanelSettings.faviconURL) {
+        this.setIcon(webPanelSettings.faviconURL);
+      }
       fetchIconURL(webPanelSettings.url).then((faviconURL) => {
         this.setIcon(faviconURL);
       });

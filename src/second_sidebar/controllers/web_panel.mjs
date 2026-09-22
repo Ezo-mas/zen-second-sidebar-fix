@@ -3,6 +3,8 @@ import { clearUrl, extractHostname } from "../utils/url.mjs";
 import { isLeftMouseButton, isMiddleMouseButton } from "../utils/buttons.mjs";
 
 import { ChromeUtilsWrapper } from "../wrappers/chrome_utils.mjs";
+import { FloatingWebPanelGeometrySettings } from "../settings/floating_web_panel_geometry_settings.mjs"; // eslint-disable-line no-unused-vars
+import { Logger } from "../utils/logger.mjs";
 import { PinnedWebPanelGeometrySettings } from "../settings/pinned_web_panel_geometry_settings.mjs"; // eslint-disable-line no-unused-vars
 import { SidebarControllers } from "../sidebar_controllers.mjs";
 import { SidebarElements } from "../sidebar_elements.mjs";
@@ -12,6 +14,7 @@ import { WebPanelState } from "../settings/web_panel_state.mjs";
 import { WebPanelTab } from "../xul/web_panel_tab.mjs"; // eslint-disable-line no-unused-vars
 import { ZoomManagerWrapper } from "../wrappers/zoom_manager.mjs";
 import { parseNotifications } from "../utils/string.mjs";
+import { safeCall } from "../utils/errors.mjs";
 
 const DEFAULT_ZOOM = 1;
 
@@ -29,6 +32,10 @@ export class WebPanelController {
   #reloadTimer = null;
   /**@type {number?} */
   #nextReloadAt = null;
+  /**@type {number?} */
+  #inactivityUnloadTimer = null;
+  /**@type {number?} */
+  #nextInactivityUnloadAt = null;
 
   /**
    *
@@ -200,6 +207,13 @@ export class WebPanelController {
   }
 
   /**
+   * @returns {string}
+   */
+  getUserContextId() {
+    return this.#settings.userContextId;
+  }
+
+  /**
    *
    * @returns {string}
    */
@@ -353,6 +367,9 @@ export class WebPanelController {
   }
 
   open() {
+    // Panel is active again; it shouldn't unload itself from under the user.
+    this.#stopInactivityTimer();
+
     // Configure web panel and button
     this.#button.setOpen(true).setUnloaded(false);
     this.setZoom(this.#settings.zoom);
@@ -370,6 +387,10 @@ export class WebPanelController {
       this.#button.setOpen(false);
       if (this.#settings.unloadOnClose) {
         this.unload();
+      } else {
+        // Panel became inactive but stays loaded; start counting down to an
+        // inactivity unload, if configured (see setUnloadAfterInactivity).
+        this.#startInactivityTimer();
       }
     }
   }
@@ -379,16 +400,28 @@ export class WebPanelController {
       this.#settings,
       this.#progressListener,
     );
+    this.#log("tab created");
     this.#tab.addTabCloseListener(() => this.unload(false));
     this.#tab.addTabAttrModifiedListener(
       (soundplaying, muted, image, busy, progress, label) => {
-        if (soundplaying || muted) this.updateSoundIcon();
+        if (soundplaying || muted) {
+          this.updateSoundIcon();
+          this.#log(
+            `sound state changed: playing=${this.#tab.getAttributeBool("soundplaying")}, muted=${this.#tab.getAttributeBool("muted")}`,
+          );
+        }
         if (image || busy || progress) this.updateFavicon();
         if (label) this.updateTitle();
       },
     );
     this.#button.setUnloaded(false);
     this.#startTimer();
+    // Covers panels loaded at startup that never go through open()/close()
+    // (e.g. "load into memory at startup" panels other than the one that
+    // ends up selected) - they still count as inactive from the start.
+    if (!this.isActive()) {
+      this.#startInactivityTimer();
+    }
 
     const url = this.#settings.loadLastUrl
       ? (this.#state?.lastUrl ?? this.#settings.url)
@@ -401,7 +434,9 @@ export class WebPanelController {
    * @param {boolean} force
    */
   unload(force = true) {
+    this.#log(`unloading (force=${force})`);
     this.#stopTimer();
+    this.#stopInactivityTimer();
     const activeWebPanelController =
       SidebarControllers.webPanelsController.getActive();
     if (activeWebPanelController?.getUUID() === this.getUUID()) {
@@ -409,7 +444,7 @@ export class WebPanelController {
     }
 
     if (this.#tab && force) {
-      SidebarElements.webPanelsBrowser.removeWebPanelTab(this.#tab);
+      this.#removeTab();
     }
 
     this.#button
@@ -468,6 +503,54 @@ export class WebPanelController {
     return this.#nextReloadAt === null
       ? null
       : Math.max(0, this.#nextReloadAt - Date.now());
+  }
+
+  #startInactivityTimer() {
+    this.#stopInactivityTimer();
+    const interval = Number(this.#settings.unloadAfterInactivity);
+    if (this.isUnloaded() || !Number.isFinite(interval) || interval <= 0) {
+      return;
+    }
+    this.#log("start inactivity timer", interval);
+    this.#nextInactivityUnloadAt = Date.now() + interval;
+    this.#inactivityUnloadTimer = setTimeout(
+      () => this.#onInactivityTimerFired(),
+      Math.max(0, this.#nextInactivityUnloadAt - Date.now()),
+    );
+  }
+
+  #stopInactivityTimer() {
+    if (this.#inactivityUnloadTimer !== null) {
+      this.#log("stop inactivity timer");
+      clearTimeout(this.#inactivityUnloadTimer);
+    }
+    this.#inactivityUnloadTimer = null;
+    this.#nextInactivityUnloadAt = null;
+  }
+
+  #onInactivityTimerFired() {
+    this.#inactivityUnloadTimer = null;
+    if (this.#tab?.soundPlaying) {
+      // Don't silently kill audio out from under the user (this is exactly
+      // the class of bug Firefox's own tab unloader caused - see
+      // setUndiscardable in web_panels_browser.mjs); check back later
+      // instead of unloading a panel that's actively playing sound.
+      this.#log("inactivity unload deferred: sound is playing");
+      this.#startInactivityTimer();
+      return;
+    }
+    this.#log("inactivity timeout reached");
+    this.unload();
+  }
+
+  /**
+   *
+   * @returns {number?}
+   */
+  getInactivityUnloadRemaining() {
+    return this.#nextInactivityUnloadAt === null
+      ? null
+      : Math.max(0, this.#nextInactivityUnloadAt - Date.now());
   }
 
   /**
@@ -632,6 +715,25 @@ export class WebPanelController {
 
   /**
    *
+   * @returns {number}
+   */
+  getUnloadAfterInactivity() {
+    return this.#settings.unloadAfterInactivity;
+  }
+
+  /**
+   *
+   * @param {number} value milliseconds of inactivity before auto-unload; 0 disables it
+   */
+  setUnloadAfterInactivity(value) {
+    this.#settings.unloadAfterInactivity = value;
+    if (!this.isUnloaded() && !this.isActive()) {
+      this.#startInactivityTimer();
+    }
+  }
+
+  /**
+   *
    * @returns {string}
    */
   getShortcut() {
@@ -690,6 +792,23 @@ export class WebPanelController {
       this.#startTimer();
     }
   }
+
+  /**
+   *
+   * @param {boolean} value
+   */
+  setReloadOnUrlChange(value) {
+    this.#settings.reloadOnUrlChange = value;
+  }
+
+  /**
+   *
+   * @returns {boolean}
+   */
+  getReloadOnUrlChange() {
+    return this.#settings.reloadOnUrlChange;
+  }
+
   /**
    *
    * @param {number} width
@@ -880,10 +999,27 @@ export class WebPanelController {
 
   remove() {
     this.#stopTimer();
+    this.#stopInactivityTimer();
     if (this.#tab) {
-      SidebarElements.webPanelsBrowser.removeWebPanelTab(this.#tab);
+      this.#removeTab();
     }
     this.#button.remove();
+  }
+
+  /**
+   * Removing the underlying tab can throw (e.g. a Gecko internal reformats
+   * the hidden panel window's urlbar during permitUnload and hits a null
+   * editor there). Swallow that here rather than in the two call sites so
+   * our own cleanup - resetting #tab, the button state, removing the
+   * button - always runs and we never keep tracking a panel as "loaded"
+   * when its tab removal failed.
+   */
+  #removeTab() {
+    const removed = safeCall(
+      () => SidebarElements.webPanelsBrowser.removeWebPanelTab(this.#tab),
+      `Web panel ${this.getUUID()}: failed to remove tab`,
+    );
+    if (removed) this.#log("tab removed");
   }
 
   /**
@@ -908,9 +1044,9 @@ export class WebPanelController {
 
   /**
    *
-   * @param {string} message
+   * @param {Array<*>} args
    */
-  #log(message) {
-    console.log(`Web panel ${this.getUUID()}:`, message);
+  #log(...args) {
+    Logger.debug(`Web panel ${this.getUUID()}:`, ...args);
   }
 }

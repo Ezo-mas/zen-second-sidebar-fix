@@ -1,6 +1,7 @@
 import { AppConstantsWrapper } from "../wrappers/app_constants.mjs";
 import { Browser } from "./base/browser.mjs";
 import { BrowserCommandsWrapper } from "../wrappers/browser_commands.mjs";
+import { Logger } from "../utils/logger.mjs";
 import { ObserversWrapper } from "../wrappers/observers.mjs";
 import { PopupNotificationsPatcher } from "../patchers/popup_notifications_patcher.mjs";
 import { ScriptSecurityManagerWrapper } from "../wrappers/script_security_manager.mjs";
@@ -8,6 +9,7 @@ import { SessionStoreWrapper } from "../wrappers/session_store.mjs";
 import { Style } from "./base/style.mjs";
 import { UrlbarInputPatcher } from "../patchers/urlbar_input_patcher.mjs";
 import { BROWSER_CONTAINER_SELECTORS } from "../utils/browser_layout.mjs";
+import { markZenWindowUnsynced } from "../utils/zen.mjs";
 import { WebPanelSettings } from "../settings/web_panel_settings.mjs"; // eslint-disable-line no-unused-vars
 import { WebPanelState } from "../settings/web_panel_state.mjs"; // eslint-disable-line no-unused-vars
 import { WebPanelTab } from "./web_panel_tab.mjs";
@@ -20,6 +22,7 @@ const INITIALIZED_EVENT = "browser-delayed-startup-finished";
 const DOM_WINDOW_CREATED_EVENT = "DOMWindowCreated";
 const DOM_WINDOW_CLOSED_EVENT = "domwindowclosed";
 const DIALOG_OPEN_EVENT = "dialogopen";
+const WEBAUTHN_PROMPT_EVENT = "webauthn-prompt";
 
 const FIRST_TAB_INDEX = 0;
 
@@ -53,10 +56,11 @@ export class WebPanelsBrowser extends Browser {
     console.log("Initializing web panels browser...");
     ObserversWrapper.addObserver(this, BEFORE_SHOW_EVENT);
     ObserversWrapper.addObserver(this, INITIALIZED_EVENT);
+    ObserversWrapper.addObserver(this, WEBAUTHN_PROMPT_EVENT);
     this.addEventListener(DOM_WINDOW_CREATED_EVENT, (event) => {
-      this.#markZenUnsyncedWindow(event.target?.defaultView ?? event.target);
+      markZenWindowUnsynced(event.target?.defaultView ?? event.target);
     });
-    this.#markZenUnsyncedWindow(this.element.contentWindow);
+    markZenWindowUnsynced(this.element.contentWindow);
     this.setAttribute("src", AppConstantsWrapper.BROWSER_CHROME_URL);
   }
 
@@ -64,23 +68,49 @@ export class WebPanelsBrowser extends Browser {
    *
    * @param {Window} subj
    * @param {string} topic
+   * @param {string?} data
    */
-  observe(subj, topic) {
+  observe(subj, topic, data = null) {
+    if (topic === WEBAUTHN_PROMPT_EVENT) {
+      this.#deactivateForWebAuthn(data);
+      return;
+    }
+
     if (this.window.name !== subj.name) {
       return;
     }
     console.log(`${this.window.name}: got event ${topic}`);
     if (topic === BEFORE_SHOW_EVENT) {
-      this.#markZenUnsyncedWindow(subj);
+      markZenWindowUnsynced(subj);
       ObserversWrapper.removeObserver(this, BEFORE_SHOW_EVENT);
       this.initWindow();
     } else if (topic === INITIALIZED_EVENT) {
-      this.#markZenUnsyncedWindow(subj);
+      markZenWindowUnsynced(subj);
       ObserversWrapper.removeObserver(this, INITIALIZED_EVENT);
       this.#hackSessionStore();
       this.#hackCloseWindowCommand();
       this.initialized = true;
       console.log(`${this.window.name}: web panels browser initialized`);
+    }
+  }
+
+  /**
+   * WebAuthn extensions require the requesting browser to be the active tab
+   * context. An active nested panel tab otherwise wins that selection.
+   *
+   * @param {string?} data
+   */
+  #deactivateForWebAuthn(data) {
+    try {
+      const { browsingContextId, prompt } = JSON.parse(data);
+      if (prompt?.type === "cancel") return;
+
+      const browsingContext = BrowsingContext.get(browsingContextId);
+      if (browsingContext?.topChromeWindow === window) {
+        this.deselectWebPanelTab();
+      }
+    } catch (error) {
+      console.log("Failed to deactivate web panel for WebAuthn:", error);
     }
   }
 
@@ -108,22 +138,8 @@ export class WebPanelsBrowser extends Browser {
     }
   }
 
-  // Mark the embedded browser chrome window as unsynced in zen
-  #markZenUnsyncedWindow(win) {
-    try {
-      if (!win) return;
-      win._zenStartupSyncFlag = "unsynced";
-      win.document?.documentElement?.setAttribute(
-        "zen-unsynced-window",
-        "true",
-      );
-    } catch (error) {
-      console.log("Failed to mark web panels window as Zen unsynced:", error);
-    }
-  }
-
   initWindow() {
-    this.#markZenUnsyncedWindow(this.window.raw);
+    markZenWindowUnsynced(this.window.raw);
     const windowRoot = new XULElement({
       element: this.window.document.documentElement,
     });
@@ -237,6 +253,13 @@ export class WebPanelsBrowser extends Browser {
   }
 
   /**
+   * @param {function(KeyboardEvent):void} callback
+   */
+  addKeypressListener(callback) {
+    this.window.addEventListener("keypress", callback);
+  }
+
+  /**
    *
    * @param {function(WebPanelTab):void} callback
    */
@@ -247,7 +270,7 @@ export class WebPanelsBrowser extends Browser {
       callback(WebPanelTab.fromTab(tab));
     });
   }
-  
+
   /**
    * Workaround for a Windows GPU-process bug: after this embedded window's
    * remote content becomes visible or its active tab changes, Gecko
@@ -284,10 +307,31 @@ export class WebPanelsBrowser extends Browser {
       }),
     );
     tab.uuid = webPanelSettings.uuid;
+    // Web panels must only be unloaded through our own explicit unload flow
+    // (see WebPanelController#unload). Firefox's automatic tab unloader can
+    // otherwise silently discard one under memory pressure - even while
+    // it's playing audio - leaving the sidebar unresponsive when the user
+    // comes back to it.
+    tab.setUndiscardable(true);
+    if (!tab.undiscardable) {
+      // Not fatal - the panel still works - but the memory-pressure
+      // unloader can now target it. Surfacing this unconditionally (not
+      // gated behind Logger.debug) since it means this Firefox/Zen build
+      // dropped or renamed the property this fix depends on.
+      console.warn(
+        `Web panel ${webPanelSettings.uuid}: tab.undiscardable did not stick; ` +
+          "this panel is no longer protected from Firefox's automatic tab unloader",
+      );
+    }
+    Logger.debug(`Web panel ${webPanelSettings.uuid}: marked undiscardable`);
     tab.linkedBrowser.addProgressListener(progressListener);
 
-    // We need to add progress listener when loading unloaded tab
+    // We need to add progress listener when loading unloaded tab. This also
+    // fires again if Firefox ever discards and later restores this tab's
+    // browser despite setUndiscardable(true) above (e.g. an older Firefox/Zen
+    // build that doesn't honor it) - the log line makes that visible.
     tab.addTabBrowserInsertedListener(() => {
+      Logger.debug(`Web panel ${webPanelSettings.uuid}: browser (re)inserted`);
       tab.linkedBrowser.addProgressListener(progressListener);
     });
 

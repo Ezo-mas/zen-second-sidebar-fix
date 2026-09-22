@@ -1,3 +1,14 @@
+// Resolved relative to this module's own URL (whatever chrome:// origin the
+// active userChrome loader actually served it from) rather than hardcoding
+// a specific loader's alias (e.g. fx-autoconfig's chrome://userscripts/...),
+// so the icons resolve under any loader.
+const SIDEBAR_LEFT_ICON = new URL("../icons/sidebar-left.svg", import.meta.url)
+  .href;
+const SIDEBAR_RIGHT_ICON = new URL(
+  "../icons/sidebar-right.svg",
+  import.meta.url,
+).href;
+
 export const SIDEBAR_MAIN_CSS = `
   #sb2-main {
     display: flex;
@@ -80,6 +91,50 @@ export const SIDEBAR_MAIN_CSS = `
       box-shadow: 2px 0 8px color-mix(in srgb, black 12%, transparent);
     }
 
+    /* Zen keeps its compact sidebar outside #zen-tabbox-wrapper while it is
+       expanded. Reserve its measured width when both sidebars share an edge. */
+    &:is(
+      [zen-compact-mode="true"][zen-sidebar-expanded="true"],
+      [zen-compact-mode="true"]:has(
+          #navigator-toolbox:is(
+              [zen-has-hover],
+              [zen-user-show],
+              [zen-has-empty-tab],
+              [flash-popup],
+              [has-popup-menu],
+              [movingtab],
+              [zen-compact-mode-active]
+            )
+        ),
+      [zen-compact-mode="true"][zen-renaming-tab="true"]
+    ):not([zen-right-side="true"]) #sb2-wrapper[position="left"] #sb2-main {
+      margin-inline-start: calc(
+        var(--actual-zen-sidebar-width, var(--zen-sidebar-width, 0px)) +
+          var(--zen-element-separation, 6px)
+      );
+    }
+
+    &:is(
+      [zen-compact-mode="true"][zen-sidebar-expanded="true"],
+      [zen-compact-mode="true"]:has(
+          #navigator-toolbox:is(
+              [zen-has-hover],
+              [zen-user-show],
+              [zen-has-empty-tab],
+              [flash-popup],
+              [has-popup-menu],
+              [movingtab],
+              [zen-compact-mode-active]
+            )
+        ),
+      [zen-compact-mode="true"][zen-renaming-tab="true"]
+    )[zen-right-side="true"] #sb2-wrapper[position="right"] #sb2-main {
+      margin-inline-end: calc(
+        var(--actual-zen-sidebar-width, var(--zen-sidebar-width, 0px)) +
+          var(--zen-element-separation, 6px)
+      );
+    }
+
     #sb2-main[overlay="true"] {
       background: var(--sb2-zen-overlay-surface);
       box-shadow:
@@ -102,6 +157,28 @@ export const SIDEBAR_MAIN_CSS = `
     .sb2-main-button[open] > stack.toolbarbutton-badge-stack,
     .sb2-main-button[checked] > stack.toolbarbutton-badge-stack {
       background: var(--sb2-zen-surface-active) !important;
+    }
+  }
+
+  /* Zen expands the compact toolbar by increasing its layout height, which
+     shrinks #zen-tabbox-wrapper and the second-sidebar launcher. Keep its
+     expanded state above the page instead. */
+  @media -moz-pref("zen.view.compact.hide-toolbar") {
+    :root[zen-compact-mode="true"]:not([zen-single-toolbar="true"]):has(#zen-tabbox-wrapper) {
+      #zen-appcontent-wrapper {
+        position: relative;
+      }
+
+      #zen-appcontent-navbar-wrapper:is(
+        [zen-has-hover],
+        [has-popup-menu],
+        [zen-compact-mode-active]
+      ) {
+        position: absolute;
+        z-index: 4 !important;
+        inset-inline: 0;
+        top: 0;
+      }
     }
   }
 
@@ -221,7 +298,7 @@ export const SIDEBAR_MAIN_CSS = `
     }
 
     #sb2-collapse-button {
-      list-style-image: url("chrome://userscripts/content/second_sidebar/icons/sidebar-left.svg");
+      list-style-image: url("${SIDEBAR_LEFT_ICON}");
     }
   }
 
@@ -231,7 +308,7 @@ export const SIDEBAR_MAIN_CSS = `
     }
 
     #sb2-collapse-button {
-      list-style-image: url("chrome://userscripts/content/second_sidebar/icons/sidebar-right.svg");
+      list-style-image: url("${SIDEBAR_RIGHT_ICON}");
     }
   }
 
