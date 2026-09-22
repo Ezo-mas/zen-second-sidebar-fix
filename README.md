@@ -46,10 +46,6 @@ Use **Export settings** / **Import settings** (sidebar settings popup) to save o
 
 https://github.com/user-attachments/assets/cd79d644-ca2c-4a30-ae8e-c265f41768b6
 
-### Widgets
-
-- `Second Sidebar` to show / hide sidebar
-
 ## Troubleshooting
 
 The Browser Console (`Ctrl+Shift+J` / `Cmd+Shift+J`) logs the sidebar's startup sequence and any errors by default. For more detail when reporting a bug (web panel lifecycle, per-setting change events, etc.), set `second-sidebar.debug-logging` to `true` in `about:config` and reproduce the issue again.
