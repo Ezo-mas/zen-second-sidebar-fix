@@ -19,6 +19,7 @@ export class SidebarController {
 
     this.containerBorder = "left";
     this.autoHideSidebar = false;
+    this.lastWebPanelShortcut = "";
     this.hideSidebarAnimated = false;
     this.hideToolbarAnimated = true;
   }
@@ -74,7 +75,9 @@ export class SidebarController {
       const webPanelController =
         SidebarControllers.webPanelsController.getActive();
       this.close();
-      webPanelController.unload();
+      if (!webPanelController.isUnloaded()) {
+        webPanelController.unload();
+      }
     });
 
     listenEvent(SidebarEvents.EDIT_SIDEBAR_POSITION, (event) => {
@@ -86,6 +89,10 @@ export class SidebarController {
     listenEvent(SidebarEvents.EDIT_SIDEBAR_PADDING, (event) => {
       const value = event.detail.value;
       SidebarControllers.sidebarMainController.setPadding(value);
+    });
+
+    listenEvent(SidebarEvents.EDIT_SIDEBAR_ALLOW_WINDOW_DRAGGING, (event) => {
+      SidebarElements.sidebarMain.setAllowWindowDragging(event.detail.value);
     });
 
     listenEvent(SidebarEvents.EDIT_SIDEBAR_NEW_WEB_PANEL_POSITION, (event) => {
@@ -132,6 +139,10 @@ export class SidebarController {
         event.detail.sidebarWidgetHideWebPanel,
         event.detail.sidebarWidgetShortcut,
       );
+    });
+
+    listenEvent(SidebarEvents.EDIT_SIDEBAR_LAST_WEB_PANEL_SHORTCUT, (event) => {
+      this.lastWebPanelShortcut = event.detail.value;
     });
 
     listenEvent(SidebarEvents.EDIT_SIDEBAR_AUTO_HIDE_ANIMATED, (event) => {
@@ -207,6 +218,7 @@ export class SidebarController {
       SidebarControllers.webPanelsController.getActive();
     webPanelController?.close();
     SidebarElements.sidebarBox.hide();
+    SidebarElements.sidebarToolbar.setPeriodicReloadPanelUUID(null);
     SidebarElements.sidebarSplitter.hide();
     SidebarElements.afterSplitter.hide();
   }
@@ -259,7 +271,8 @@ export class SidebarController {
     SidebarElements.sidebarToolbar
       .setTitle(title)
       .toggleBackButton(!canGoBack)
-      .toggleForwardButton(!canGoForward);
+      .toggleForwardButton(!canGoForward)
+      .setPeriodicReloadPanelUUID(webPanelController.getUUID());
 
     const hideToolbar = webPanelController.getHideToolbar();
     hideToolbar ? this.collapseToolbar() : this.uncollapseToolbar();
@@ -392,6 +405,9 @@ export class SidebarController {
   loadSettings(settings) {
     SidebarElements.sidebarWrapper.setPosition(settings.position);
     SidebarControllers.sidebarMainController.setPadding(settings.padding);
+    SidebarElements.sidebarMain.setAllowWindowDragging(
+      settings.allowWindowDragging,
+    );
     SidebarControllers.webPanelNewController.setNewWebPanelPosition(
       settings.newWebPanelPosition,
     );
@@ -413,6 +429,7 @@ export class SidebarController {
       settings.sidebarWidgetHideWebPanel,
       settings.sidebarWidgetShortcut,
     );
+    this.lastWebPanelShortcut = settings.lastWebPanelShortcut;
     this.hideSidebarAnimated = settings.hideSidebarAnimated;
     this.setHideToolbarAnimated(settings.hideToolbarAnimated);
     SidebarControllers.sidebarGeometry.setEnableSidebarBoxHint(
@@ -428,6 +445,7 @@ export class SidebarController {
     return new SidebarSettings({
       position: SidebarElements.sidebarWrapper.getPosition(),
       padding: SidebarControllers.sidebarMainController.getPadding(),
+      allowWindowDragging: SidebarElements.sidebarMain.getAllowWindowDragging(),
       newWebPanelPosition:
         SidebarControllers.webPanelNewController.getNewWebPanelPosition(),
       defaultFloatingOffset:
@@ -443,6 +461,7 @@ export class SidebarController {
       autoHideSidebarBehavior: this.autoHideSidebarBehavior,
       sidebarWidgetHideWebPanel: this.sidebarWidgetHideWebPanel,
       sidebarWidgetShortcut: this.sidebarWidgetShortcut,
+      lastWebPanelShortcut: this.lastWebPanelShortcut,
       hideSidebarAnimated: this.hideSidebarAnimated,
       hideToolbarAnimated: this.hideToolbarAnimated,
       enableSidebarBoxHint:

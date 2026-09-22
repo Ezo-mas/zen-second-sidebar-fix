@@ -25,8 +25,10 @@ export class WebPanelController {
   #button;
   /**@type {WebPanelTab?} */
   #tab = null;
-  /**@type {number} */
-  #interval = null;
+  /**@type {number?} */
+  #reloadTimer = null;
+  /**@type {number?} */
+  #nextReloadAt = null;
 
   /**
    *
@@ -135,18 +137,32 @@ export class WebPanelController {
       SidebarControllers.webPanelTooltipController.hidePopup();
     });
 
-    button.addEventListener("click", (event) => {
+    button.addEventListener("mousedown", (event) => {
+      if (
+        !isLeftMouseButton(event) ||
+        document.documentElement.hasAttribute("customizing")
+      ) {
+        return;
+      }
+
       event.stopPropagation();
       clearTimeout(tooltipTimer);
       SidebarControllers.webPanelTooltipController.hidePopup();
-      if (isLeftMouseButton(event)) {
-        this.switchWebPanel();
-      } else if (isMiddleMouseButton(event)) {
-        if (this.isActive()) {
-          SidebarControllers.sidebarController.close();
-        }
-        this.unload();
+
+      this.switchWebPanel();
+    });
+
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (!isMiddleMouseButton(event)) return;
+
+      clearTimeout(tooltipTimer);
+      SidebarControllers.webPanelTooltipController.hidePopup();
+
+      if (this.isActive()) {
+        SidebarControllers.sidebarController.close();
       }
+      this.unload();
     });
 
     return button;
@@ -413,21 +429,45 @@ export class WebPanelController {
 
   #startTimer() {
     this.#stopTimer();
-    if (this.#settings.periodicReload == 0) {
+    const interval = Number(this.#settings.periodicReload);
+    if (this.isUnloaded() || !Number.isFinite(interval) || interval <= 0) {
       return;
     }
-    this.#log("start timer", this.#settings.periodicReload);
-    this.#interval = setInterval(() => {
-      this.#log("periodic reload");
-      this.reload();
-    }, this.#settings.periodicReload);
+    this.#log("start timer", interval);
+    this.#nextReloadAt = Date.now() + interval;
+    this.#reloadTimer = setTimeout(
+      () => {
+        this.#reloadTimer = null;
+        this.#log("periodic reload");
+        this.reload();
+      },
+      Math.max(0, this.#nextReloadAt - Date.now()),
+    );
+    this.#refreshPeriodicReloadIndicator();
   }
 
   #stopTimer() {
-    if (this.#interval) {
+    if (this.#reloadTimer !== null) {
       this.#log("stop timer");
-      clearInterval(this.#interval);
+      clearTimeout(this.#reloadTimer);
     }
+    this.#reloadTimer = null;
+    this.#nextReloadAt = null;
+    this.#refreshPeriodicReloadIndicator();
+  }
+
+  #refreshPeriodicReloadIndicator() {
+    SidebarElements.sidebarToolbar.refreshPeriodicReload(this.getUUID());
+  }
+
+  /**
+   *
+   * @returns {number?}
+   */
+  getPeriodicReloadRemaining() {
+    return this.#nextReloadAt === null
+      ? null
+      : Math.max(0, this.#nextReloadAt - Date.now());
   }
 
   /**
@@ -439,6 +479,10 @@ export class WebPanelController {
   }
 
   reload() {
+    if (this.isUnloaded()) {
+      return;
+    }
+    this.#startTimer();
     this.#tab.linkedBrowser.reload();
   }
 
@@ -835,6 +879,7 @@ export class WebPanelController {
   }
 
   remove() {
+    this.#stopTimer();
     if (this.#tab) {
       SidebarElements.webPanelsBrowser.removeWebPanelTab(this.#tab);
     }

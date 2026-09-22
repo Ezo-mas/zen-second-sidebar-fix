@@ -13,7 +13,10 @@ export class ContextMenuItemsController {
   #setupListeners() {
     BrowserElements.contentAreaContextMenu.addEventListener(
       "popupshowing",
-      () => this.#onPopupShowing(),
+      (event) => {
+        if (event.target !== event.currentTarget) return;
+        this.#onPopupShowing();
+      },
     );
 
     SidebarElements.openLinkAsWebPanelMenuItem.addEventListener("command", () =>
@@ -32,8 +35,22 @@ export class ContextMenuItemsController {
   }
 
   #onPopupShowing() {
-    this.searchQuery = gContextMenu.selectedText || gContextMenu.linkTextStr;
-    SidebarElements.searchInWebPanelMenuItem.setSearchQuery(this.searchQuery);
+    const hideLinkItems = !gContextMenu.onSaveableLink;
+    SidebarElements.openLinkAsWebPanelMenuItem.toggleHidden(hideLinkItems);
+    SidebarElements.openLinkAsTempWebPanelMenuItem.toggleHidden(hideLinkItems);
+    gContextMenu.showItem(
+      "context-sep-open",
+      gContextMenu.shouldShowSeparator("context-sep-open"),
+    );
+
+    this.searchQuery = gContextMenu.isTextSelected
+      ? gContextMenu.selectedText.trim()
+      : "";
+    const hideSearchItem = this.searchQuery.length === 0;
+    SidebarElements.searchInWebPanelMenuItem.toggleHidden(hideSearchItem);
+    if (!hideSearchItem) {
+      SidebarElements.searchInWebPanelMenuItem.setSearchQuery(this.searchQuery);
+    }
   }
 
   /**
@@ -49,7 +66,8 @@ export class ContextMenuItemsController {
   }
 
   async #searchInWebPanel() {
-    const url = await SearchService.getDefaulSubmissionUrl(this.searchQuery);
+    if (!this.searchQuery) return;
+    const url = await SearchService.getDefaultSubmissionUrl(this.searchQuery);
     if (url === null) return;
     SidebarControllers.webPanelNewController.createWebPanel(
       url,

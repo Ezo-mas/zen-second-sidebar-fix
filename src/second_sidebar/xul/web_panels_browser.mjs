@@ -132,10 +132,13 @@ export class WebPanelsBrowser extends Browser {
     const selectors = [
       "#PersonalToolbar",
       "#navigator-toolbox",
+      "#sidebar-container",
       "#sidebar-main",
+      "sidebar-main",
       "#sidebar-launcher-splitter",
       "#sidebar-wrapper",
       "#sidebar-box",
+      "#sidebar-splitter",
       "#context-bookmarkpage",
       "#context-viewsource",
       "#zen-appcontent-navbar-wrapper",
@@ -172,6 +175,13 @@ export class WebPanelsBrowser extends Browser {
       .browserContainer {
         overflow: unset !important;
         border: none !important;
+      }
+
+      @media -moz-pref("browser.nova.enabled") {
+        .browserContainer {
+          border-radius: 0 !important;
+          box-shadow: none !important;
+        }
       }
     `);
     windowRoot.appendChild(browserContainerStyle);
@@ -329,8 +339,10 @@ export class WebPanelsBrowser extends Browser {
    */
   activeWebPanelContains(element) {
     const webPanelTab = this.getActiveWebPanelTab();
+    // Permission buttons can be detached before the click reaches the outer
+    // window. Their owner document still identifies them as panel chrome.
     return (
-      this.window.documentElement?.contains(element) ||
+      this.window.document === element.ownerDocument ||
       webPanelTab.linkedBrowser.contentDocument === element.ownerDocument
     );
   }
