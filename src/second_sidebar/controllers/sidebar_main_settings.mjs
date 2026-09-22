@@ -93,13 +93,15 @@ export class SidebarMainSettingsController {
 
   /**
    *
-   * @param {number} screenX
-   * @param {number} screenY
    */
-  openPopup(screenX, screenY) {
-    SidebarElements.sidebarMainPopupSettings.openPopupAtScreen(
-      screenX,
-      screenY,
+  openPopup() {
+    const popupPosition =
+      SidebarElements.sidebarWrapper.getPosition() === "right"
+        ? "start_before"
+        : "end_before";
+    SidebarElements.sidebarMainPopupSettings.openPopup(
+      SidebarElements.sidebarMain,
+      popupPosition,
       SidebarControllers.sidebarController.dumpSettings(),
     );
   }

@@ -16,7 +16,6 @@ import {
   updateZoomButtons,
 } from "../utils/xul.mjs";
 
-import { BrowserElements } from "../browser_elements.mjs";
 import { Div } from "./base/div.mjs";
 import { Panel } from "./base/panel.mjs";
 import { PanelMultiView } from "./base/panel_multi_view.mjs";
@@ -27,7 +26,6 @@ import { PopupHeader } from "./popup_header.mjs";
 import { SidebarControllers } from "../sidebar_controllers.mjs";
 import { Toggle } from "./base/toggle.mjs";
 import { ToolbarSeparator } from "./base/toolbar_separator.mjs";
-import { VBox } from "./base/vbox.mjs";
 import { WebPanelController } from "../controllers/web_panel.mjs"; // eslint-disable-line no-unused-vars
 import { fetchIconURL } from "../utils/icons.mjs";
 import { isLeftMouseButton } from "../utils/buttons.mjs";
@@ -51,8 +49,7 @@ export class WebPanelPopupEdit extends Panel {
       .setRole("group")
       .setAttribute("no-open-on-anchor", "true")
       .setAttribute("noautohide", "true")
-      .setAttribute("consumeoutsideclicks", "false")
-      .setAttribute("level", "parent");
+      .setAttribute("consumeoutsideclicks", "false");
 
     this.urlInput = createInput({ placeholder: "URL" });
     this.dynamicTitleToggle = new Toggle({
@@ -119,10 +116,8 @@ export class WebPanelPopupEdit extends Panel {
     this.discardConfirmation = new PopupDiscardConfirmation({
       onDiscard: () => this.#discardChangesAndClose(),
     });
-    this.backdrop = new VBox({ id: "sb2-web-panel-edit-backdrop" }).hide();
     this.#setupListeners();
     this.#compose();
-    BrowserElements.root.appendChild(this.backdrop);
 
     this.zoom = 1;
     this.faviconRequestId = 0;
@@ -139,31 +134,13 @@ export class WebPanelPopupEdit extends Panel {
       }
     });
 
-    this.backdrop.addEventListener("mousedown", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-    });
-    this.backdrop.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (isLeftMouseButton(event)) {
-        this.#requestClose();
-      }
-    });
-    this.backdrop.addEventListener("contextmenu", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-    });
-
     this.addEventListener("popupshown", (event) => {
       if (event.target === this.getXUL()) {
-        this.backdrop.show();
         SidebarControllers.webPanelsShortcuts.disable();
       }
     });
     this.addEventListener("popuphidden", (event) => {
       if (event.target === this.getXUL()) {
-        this.backdrop.hide();
         SidebarControllers.webPanelsShortcuts.enable();
       }
     });
@@ -780,8 +757,21 @@ export class WebPanelPopupEdit extends Panel {
       }
       this.#requestClose();
     };
+    this.closeOnOutsideMouseDown = (event) => {
+      if (
+        !this.editSessionActive ||
+        this.getXUL().contains(event.target) ||
+        this.#hasOpenPopupAboveEditor()
+      ) {
+        return;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      this.#requestClose();
+    };
     this.addEventListener("popuphidden", this.closeOnPopupHidden);
     window.addEventListener("keydown", this.escapeOnKeyDown, true);
+    window.addEventListener("mousedown", this.closeOnOutsideMouseDown, true);
 
     return Panel.prototype.openPopup.call(this, webPanelController.button);
   }
@@ -805,7 +795,6 @@ export class WebPanelPopupEdit extends Panel {
     this.editSessionActive = false;
     this.#removeCloseListeners();
     this.#cancelFaviconRequest();
-    this.backdrop.hide();
     this.discardConfirmation.hide({ restoreFocus: false });
   }
 
@@ -825,6 +814,14 @@ export class WebPanelPopupEdit extends Panel {
     if (this.escapeOnKeyDown) {
       window.removeEventListener("keydown", this.escapeOnKeyDown, true);
       this.escapeOnKeyDown = null;
+    }
+    if (this.closeOnOutsideMouseDown) {
+      window.removeEventListener(
+        "mousedown",
+        this.closeOnOutsideMouseDown,
+        true,
+      );
+      this.closeOnOutsideMouseDown = null;
     }
   }
 

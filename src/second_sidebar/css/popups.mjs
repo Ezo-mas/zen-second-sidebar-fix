@@ -4,8 +4,10 @@ export const POPUPS_CSS = `
     flex-direction: column;
     align-items: unset;
     width: 100%;
+    max-height: calc(100vh - 32px);
 
     .sb2-popup-header {
+      flex: none;
       margin-bottom: var(--space-small);
       padding: 0 var(--space-xsmall);
 
@@ -17,9 +19,11 @@ export const POPUPS_CSS = `
     }
 
     .sb2-popup-body {
+      flex: 1 1 auto;
+      min-height: 0;
       padding: 0 var(--space-medium);
       width: 100%;
-      overflow-y: scroll;
+      overflow-y: auto;
       gap: var(--space-small);
 
       .subviewbutton {
@@ -99,6 +103,7 @@ export const POPUPS_CSS = `
     }
 
     .sb2-popup-footer {
+      flex: none;
       justify-content: end;
       margin-top: var(--space-small);
       gap: var(--space-small);
@@ -152,18 +157,6 @@ export const POPUPS_CSS = `
     .sb2-popup-menu-list {
       margin-top: 0px;
       margin-bottom: 0px;
-    }
-  }
-
-  #sb2-main-popup-settings-backdrop,
-  #sb2-web-panel-edit-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 2147483646;
-    background: transparent;
-
-    &[hidden] {
-      display: none;
     }
   }
 

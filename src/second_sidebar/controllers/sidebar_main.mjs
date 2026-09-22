@@ -6,7 +6,6 @@ import { SidebarMainPatcher } from "../patchers/sidebar_main_patcher.mjs";
 import { XULElement } from "../xul/base/xul_element.mjs";
 import { gCustomizeModeWrapper } from "../wrappers/g_customize_mode.mjs";
 import { gNavToolboxWrapper } from "../wrappers/g_nav_toolbox.mjs";
-import { isRightMouseButton } from "../utils/buttons.mjs";
 
 export class SidebarMainController {
   constructor() {
@@ -17,18 +16,8 @@ export class SidebarMainController {
   }
 
   #setupListeners() {
-    SidebarElements.sidebarMain.addEventListener("mousedown", (event) => {
-      if (isRightMouseButton(event)) {
-        this.mouseX = event.screenX;
-        this.mouseY = event.screenY;
-      }
-    });
-
     SidebarElements.sidebarMainMenuPopup.listenSettingsItemClick(() => {
-      SidebarControllers.sidebarMainSettingsController.openPopup(
-        this.mouseX,
-        this.mouseY,
-      );
+      SidebarControllers.sidebarMainSettingsController.openPopup();
     });
 
     SidebarElements.sidebarMainMenuPopup.listenCustomizeItemClick(() => {
