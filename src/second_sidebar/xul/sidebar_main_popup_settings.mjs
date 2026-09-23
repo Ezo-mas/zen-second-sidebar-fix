@@ -10,6 +10,7 @@ import {
   createSubviewIconicButton,
 } from "../utils/xul.mjs";
 
+import { BrowserElements } from "../browser_elements.mjs";
 import { Div } from "./base/div.mjs";
 import { Panel } from "./base/panel.mjs";
 import { PanelMultiView } from "./base/panel_multi_view.mjs";
@@ -21,6 +22,7 @@ import { SidebarControllers } from "../sidebar_controllers.mjs";
 import { SidebarSettings } from "../settings/sidebar_settings.mjs"; // eslint-disable-line no-unused-vars
 import { Toggle } from "./base/toggle.mjs";
 import { ToolbarSeparator } from "./base/toolbar_separator.mjs";
+import { VBox } from "./base/vbox.mjs";
 import { XULElement } from "./base/xul_element.mjs"; // eslint-disable-line no-unused-vars
 import { isLeftMouseButton } from "../utils/buttons.mjs";
 
@@ -86,20 +88,42 @@ export class SidebarMainPopupSettings extends Panel {
     this.discardConfirmation = new PopupDiscardConfirmation({
       onDiscard: () => this.#discardChangesAndClose(),
     });
+    this.backdrop = new VBox({
+      id: "sb2-main-popup-settings-backdrop",
+    }).hide();
     this.#setupListeners();
     this.#compose();
-
+    BrowserElements.root.appendChild(this.backdrop);
     this.editSessionActive = false;
   }
 
   #setupListeners() {
+
+    this.backdrop.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    this.backdrop.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (isLeftMouseButton(event)) {
+        this.#requestClose();
+      }
+    });
+    this.backdrop.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+
     this.addEventListener("popupshown", (event) => {
       if (event.target === this.getXUL()) {
+        this.backdrop.show();
         SidebarControllers.webPanelsShortcuts.disable();
       }
     });
     this.addEventListener("popuphidden", (event) => {
       if (event.target === this.getXUL()) {
+        this.backdrop.hide();
         SidebarControllers.webPanelsShortcuts.enable();
       }
     });
@@ -628,6 +652,7 @@ export class SidebarMainPopupSettings extends Panel {
   #endEditSession() {
     this.editSessionActive = false;
     this.#removeCloseListeners();
+    this.backdrop.hide();
     this.discardConfirmation.hide({ restoreFocus: false });
   }
 

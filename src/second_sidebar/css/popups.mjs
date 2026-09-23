@@ -160,6 +160,19 @@ export const POPUPS_CSS = `
     }
   }
 
+  #sb2-main-popup-settings-backdrop,
+  #sb2-web-panel-edit-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483646;
+    background: transparent;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+
   .sb2-popup > panelmultiview:has(> .sb2-popup-discard-confirmation) {
     position: relative;
     overflow: hidden;
