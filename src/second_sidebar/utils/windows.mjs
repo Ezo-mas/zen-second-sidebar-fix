@@ -7,7 +7,14 @@ export const isPopupWindow = () => {
   const chromeHidden = mainWindow?.getAttribute("chromehidden") ?? "";
 
   return (
+<<<<<<< HEAD
     chromeHidden.split(/\s+/).includes("extrachrome") ||
     window.toolbar?.visible === false
+=======
+    !window.toolbar.visible ||
+    mainWindow.hasAttribute("popup-window") ||
+    (mainWindow.hasAttribute("chromehidden") &&
+      mainWindow.getAttribute("chromehidden").includes("extrachrome"))
+>>>>>>> upstream/master
   );
 };
